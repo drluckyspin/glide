@@ -1,4 +1,4 @@
-# ![icon](Glide/Images.xcassets/AppIcon-Purple/icon_32x32.png) Glide
+# ![Icon](docs/app-icon.png) Glide
 
 Adds easy `modifier key + mouse drag` move and resize to OSX
 

@@ -40,6 +40,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let statusPopover = NSPopover()
     private var statusMenuViewModel: StatusMenuViewModel?
+    private var globalClickMonitor: Any?
+    private var localClickMonitor: Any?
     private var keyModifierFlags: CGEventFlags = []
     private var onboardingWindowController: OnboardingWindowController?
     private var accessibilityCheckTimer: Timer?
@@ -429,11 +431,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = statusItem.button else { return }
         if statusPopover.isShown {
             statusPopover.performClose(nil)
+            removeClickMonitors()
         } else {
             statusMenuViewModel?.syncFromPreferences()
             let anchorRect = NSRect(x: 0, y: button.bounds.height - 1, width: button.bounds.width, height: 1)
             statusPopover.show(relativeTo: anchorRect, of: button, preferredEdge: .maxY)
             nudgePopoverDown()
+            installClickMonitors()
         }
     }
 
@@ -442,6 +446,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         var frame = window.frame
         frame.origin.y -= 30
         window.setFrame(frame, display: false)
+    }
+
+    private func installClickMonitors() {
+        removeClickMonitors()
+        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+            self?.statusPopover.performClose(nil)
+        }
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            self?.statusPopover.performClose(nil)
+            return event
+        }
+    }
+
+    private func removeClickMonitors() {
+        if let monitor = globalClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalClickMonitor = nil
+        }
+        if let monitor = localClickMonitor {
+            NSEvent.removeMonitor(monitor)
+            localClickMonitor = nil
+        }
     }
 
     private func setModifierKey(_ key: ModifierKey, enabled: Bool) {

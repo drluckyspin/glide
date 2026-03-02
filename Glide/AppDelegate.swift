@@ -29,28 +29,28 @@ private func eventTapCallback(
 @objc(AppDelegate) @objcMembers
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-    @IBOutlet weak var statusMenu: NSMenu!
-    @IBOutlet weak var altMenu: NSMenuItem!
-    @IBOutlet weak var cmdMenu: NSMenuItem!
-    @IBOutlet weak var ctrlMenu: NSMenuItem!
-    @IBOutlet weak var shiftMenu: NSMenuItem!
-    @IBOutlet weak var disabledMenu: NSMenuItem!
-    @IBOutlet weak var useMouseMoveMenu: NSMenuItem!
-
     private var statusItem: NSStatusItem!
+    // Popover-based replacement for the legacy NSMenu UI.
     private let statusPopover = NSPopover()
     private var statusMenuViewModel: StatusMenuViewModel?
+    // Click monitors are installed only while the popover is visible
+    // so outside clicks close it like a native menu.
     private var globalClickMonitor: Any?
     private var localClickMonitor: Any?
+    // Runtime-resolved shortcut mask built from user preferences.
     private var keyModifierFlags: CGEventFlags = []
     private var onboardingWindowController: OnboardingWindowController?
     private var accessibilityCheckTimer: Timer?
+    // Protects event-tap setup from accidental double-initialization.
     private var didStartMainFlow = false
+    // Cached disabled state for the SwiftUI popover model.
     private var isDisabled = false
 
     // MARK: - NSApplicationDelegate
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // If AX permission is already granted, we can immediately start handling events.
+        // Otherwise, route through onboarding and poll until permission appears.
         if hasAccessibilityPermission() {
             startMainFlow()
         } else {
@@ -62,23 +62,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     override func awakeFromNib() {
         super.awakeFromNib()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        // We use an NSPopover for richer UI, so we intentionally do not attach NSMenu here.
         statusItem.menu = nil
         if let button = statusItem.button {
             button.image = NSImage(named: "MenuIcon")
             button.target = self
             button.action = #selector(toggleStatusPopover)
         }
-        statusMenu.autoenablesItems = false
-        statusMenu.item(at: 0)?.isEnabled = false
         configureStatusPopover()
     }
 
     // MARK: - Event Handling (called from C callback)
 
     func handleCGEvent(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+        // `passthrough` means "do not consume this event".
         let passthrough = Unmanaged.passUnretained(event)
 
         if keyModifierFlags.isEmpty {
+            // Defensive fallback: if preferences resolve to no modifiers, disable behavior.
             return passthrough
         }
 
@@ -96,6 +97,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Bail if the required modifier keys aren't all held down.
         let flags = event.flags
         guard flags.contains(keyModifierFlags) else {
+            // User released required modifiers mid-drag; stop tracking gesture state.
             if moveResize.dragEventCount > 0 { moveResize.dragEventCount = 0 }
             return passthrough
         }
@@ -107,7 +109,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return passthrough
         }
 
-        let useMouseMove = useMouseMoveMenu.state == .on
+        let useMouseMove = Preferences.shared.useMouseMove
 
         // ── Initial tracking: find the window under the cursor ────────────────
         if (useMouseMove && type == .mouseMoved && moveResize.dragEventCount == 0)
@@ -115,6 +117,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             || type == .rightMouseDown {
 
             let mouseLocation = event.location
+            // `1` indicates an active gesture has started; increments on each drag event.
             moveResize.dragEventCount = 1
 
             let systemWide = AXUIElementCreateSystemWide()
@@ -164,6 +167,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 moveResize.trackedWindowOrigin = position
                 moveResize.trackedWindow = win
             } else {
+                // No AX window at cursor position (desktop/menu bar/etc.).
                 moveResize.trackedWindow = nil
             }
         }
@@ -218,6 +222,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             AXValueGetValue(sizeRef as! AXValue, .cgSize, &windowSize)
 
             var resizeGrip = WindowResizeGrip()
+            // Divide the window into a 3x3 grid and infer edge/corner direction
+            // from the right-click location.
             if localX < windowSize.width / 3 {
                 resizeGrip.horizontalDirection = .left
             } else if localX > 2 * windowSize.width / 3 {
@@ -249,12 +255,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             var pos  = moveResize.trackedWindowOrigin
             var size = moveResize.trackedWindowSize
 
+            // Horizontal resize math.
             switch resizeGrip.horizontalDirection {
             case .right: size.width += deltaX
             case .left:  size.width -= deltaX; pos.x += deltaX
             case .none:  break
             }
 
+            // Vertical resize math.
             switch resizeGrip.verticalDirection {
             case .top:    size.height += deltaY
             case .bottom: size.height -= deltaY; pos.y += deltaY
@@ -266,6 +274,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
             // Only flush every kResizeFilterInterval events.
             if moveResize.dragEventCount % kResizeFilterInterval == 0 {
+                // If resizing from left/bottom edges, update position first so the
+                // anchored edge visually stays under the cursor.
                 if resizeGrip.horizontalDirection == .left || resizeGrip.verticalDirection == .bottom {
                     var p = pos
                     if let axPos = AXValueCreate(.cgPoint, &p) {
@@ -306,9 +316,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard !didStartMainFlow else { return }
         didStartMainFlow = true
 
-        initModifierMenuItems()
+        // Initialize UI from persisted prefs, then compute runtime mask.
         keyModifierFlags = Preferences.shared.modifierFlags
 
+        // Mouse events we intercept globally to implement move/resize gestures.
         let eventMask: CGEventMask =
             eventMaskBit(.leftMouseDown)    |
             eventMaskBit(.leftMouseDragged) |
@@ -351,6 +362,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             debugText: nil
         )
         onboardingWindowController = controller
+        // Ensure onboarding opens after app startup settles.
         DispatchQueue.main.async {
             controller.showWindow()
         }
@@ -358,6 +370,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startAccessibilityCheckTimer() {
         accessibilityCheckTimer?.invalidate()
+        // Poll because AX permission changes are driven by System Settings
+        // and there is no direct callback for this app to observe.
         accessibilityCheckTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
             guard let self else { return }
             guard self.hasAccessibilityPermission() else { return }
@@ -371,6 +385,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func enableEventTap(_ moveResize: WindowGlide) {
         guard let source = moveResize.eventTapRunLoopSource else { return }
+        // Attach source to main run loop and ensure tap is enabled.
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         if let tap = moveResize.globalEventTap {
             CGEvent.tapEnable(tap: tap, enable: true)
@@ -378,6 +393,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func disableEventTap(_ moveResize: WindowGlide) {
+        // Disable first, then detach source from run loop.
         if let tap = moveResize.globalEventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
         }
@@ -388,17 +404,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Menu Setup
 
-    private func initModifierMenuItems() {
-        let enabled = Preferences.shared.enabledKeys
-        altMenu.state   = enabled.contains(.alt)  ? .on : .off
-        cmdMenu.state   = enabled.contains(.cmd)  ? .on : .off
-        ctrlMenu.state  = enabled.contains(.ctrl) ? .on : .off
-        shiftMenu.state = enabled.contains(.shift) ? .on : .off
-        disabledMenu.state   = .off
-        useMouseMoveMenu.state = Preferences.shared.useMouseMove ? .on : .off
-    }
-
     private func configureStatusPopover() {
+        // ViewModel bridges SwiftUI controls to existing AppDelegate behaviors.
         let viewModel = StatusMenuViewModel(
             isDisabled: isDisabled,
             onToggleDisabled: { [weak self] disabled in
@@ -433,9 +440,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             statusPopover.performClose(nil)
             removeClickMonitors()
         } else {
+            // Refresh UI state from persisted prefs each time before showing.
             statusMenuViewModel?.syncFromPreferences()
+            // Anchor just below the status-bar icon.
             let anchorRect = NSRect(x: 0, y: button.bounds.height - 1, width: button.bounds.width, height: 1)
             statusPopover.show(relativeTo: anchorRect, of: button, preferredEdge: .maxY)
+            // Visual tweak: move closer to icon for menu-like feel.
             nudgePopoverDown()
             installClickMonitors()
         }
@@ -450,13 +460,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func installClickMonitors() {
         removeClickMonitors()
-        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            self?.statusPopover.performClose(nil)
+        // Global monitor catches clicks outside app; local monitor catches clicks in-app.
+        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            guard let self else { return }
+            if self.isClickInsidePopover(event: event) { return }
+            self.statusPopover.performClose(nil)
         }
         localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
-            self?.statusPopover.performClose(nil)
+            guard let self else { return event }
+            if self.isClickInsidePopover(event: event) { return event }
+            self.statusPopover.performClose(nil)
             return event
         }
+    }
+
+    private func isClickInsidePopover(event: NSEvent) -> Bool {
+        guard let window = statusPopover.contentViewController?.view.window else { return false }
+        if event.window === window {
+            return window.contentView?.bounds.contains(event.locationInWindow) ?? false
+        }
+        let screenPoint: NSPoint
+        if let eventWindow = event.window {
+            let rect = eventWindow.convertToScreen(NSRect(origin: event.locationInWindow, size: .zero))
+            screenPoint = rect.origin
+        } else {
+            screenPoint = event.locationInWindow
+        }
+        return window.frame.contains(screenPoint)
     }
 
     private func removeClickMonitors() {
@@ -482,6 +512,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setDisabled(_ disabled: Bool) {
         isDisabled = disabled
         let moveResize = WindowGlide.shared
+        // Keep event-tap lifecycle tied to disabled state.
         if disabled {
             disableEventTap(moveResize)
         } else {
@@ -492,52 +523,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func resetToDefaults() {
         Preferences.shared.resetToDefaults()
         keyModifierFlags = Preferences.shared.modifierFlags
+        // Reset UI + behavior state to an enabled baseline.
         isDisabled = false
         let moveResize = WindowGlide.shared
         enableEventTap(moveResize)
     }
 
-    private func setMenusEnabled(_ enabled: Bool) {
-        altMenu.isEnabled   = enabled
-        cmdMenu.isEnabled   = enabled
-        ctrlMenu.isEnabled  = enabled
-        shiftMenu.isEnabled = enabled
-    }
-
-    // MARK: - IBActions
-
-    @IBAction func modifierToggle(_ sender: NSMenuItem) {
-        let newState: NSControl.StateValue = sender.state == .on ? .off : .on
-        sender.state = newState
-        // Menu item titles ("Alt", "Cmd", "Ctrl", "Shift") uppercase to ModifierKey raw values.
-        if let key = ModifierKey(rawValue: sender.title.uppercased()) {
-            Preferences.shared.setKey(key, enabled: newState == .on)
-            keyModifierFlags = Preferences.shared.modifierFlags
-        }
-    }
-
-    @IBAction func useMouseMoveToggle(_ sender: NSMenuItem) {
-        let newState: NSControl.StateValue = sender.state == .on ? .off : .on
-        sender.state = newState
-        Preferences.shared.useMouseMove = newState == .on
-    }
-
-    @IBAction func resetModifiersToDefaults(_ sender: Any) {
-        Preferences.shared.resetToDefaults()
-        initModifierMenuItems()
-        keyModifierFlags = Preferences.shared.modifierFlags
-    }
-
-    @IBAction func toggleDisabled(_ sender: Any) {
-        let moveResize = WindowGlide.shared
-        if disabledMenu.state == .off {
-            disabledMenu.state = .on
-            setMenusEnabled(false)
-            disableEventTap(moveResize)
-        } else {
-            disabledMenu.state = .off
-            setMenusEnabled(true)
-            enableEventTap(moveResize)
-        }
-    }
+    // MARK: - IBActions (legacy NSMenu removed)
 }

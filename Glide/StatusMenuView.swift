@@ -71,21 +71,21 @@ struct StatusMenuView: View {
                 Divider()
                     .background(Color.white.opacity(0.2))
 
-                toggleRow(title: "Disabled", isOn: model.isDisabled) {
+                toggleRow(title: "Disable", isOn: model.isDisabled) {
                     model.toggleDisabled()
                 }
 
                 VStack(spacing: 10) {
-                    toggleRow(title: "Alt", isOn: model.enabledKeys.contains(.alt), isEnabled: !model.isDisabled) {
+                    toggleRow(title: "Option", symbol: "option", isOn: model.enabledKeys.contains(.alt), isEnabled: !model.isDisabled) {
                         model.toggleKey(.alt)
                     }
-                    toggleRow(title: "Cmd", isOn: model.enabledKeys.contains(.cmd), isEnabled: !model.isDisabled) {
+                    toggleRow(title: "Command", symbol: "command", isOn: model.enabledKeys.contains(.cmd), isEnabled: !model.isDisabled) {
                         model.toggleKey(.cmd)
                     }
-                    toggleRow(title: "Ctrl", isOn: model.enabledKeys.contains(.ctrl), isEnabled: !model.isDisabled) {
+                    toggleRow(title: "Control", symbol: "control", isOn: model.enabledKeys.contains(.ctrl), isEnabled: !model.isDisabled) {
                         model.toggleKey(.ctrl)
                     }
-                    toggleRow(title: "Shift", isOn: model.enabledKeys.contains(.shift), isEnabled: !model.isDisabled) {
+                    toggleRow(title: "Shift", symbol: "shift", isOn: model.enabledKeys.contains(.shift), isEnabled: !model.isDisabled) {
                         model.toggleKey(.shift)
                     }
                 }
@@ -94,7 +94,7 @@ struct StatusMenuView: View {
                 Divider()
                     .background(Color.white.opacity(0.2))
 
-                toggleRow(title: "Hover move", isOn: model.useMouseMove, isEnabled: !model.isDisabled) {
+                toggleRow(title: "Drag move", isOn: model.useMouseMove, isEnabled: !model.isDisabled) {
                     model.toggleMouseMove()
                 }
 
@@ -145,13 +145,24 @@ struct StatusMenuView: View {
             }
         }
         .padding(.vertical, 6)
-        .padding(.horizontal, 8)
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    private func toggleRow(title: String, isOn: Bool, isEnabled: Bool = true, action: @escaping () -> Void) -> some View {
+    private func toggleRow(
+        title: String,
+        symbol: String? = nil,
+        isOn: Bool,
+        isEnabled: Bool = true,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             HStack {
+                if let symbol {
+                    Image(systemName: symbol)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(isEnabled ? accent : .white.opacity(0.4))
+                        .frame(width: 16)
+                }
                 Text(title)
                     .foregroundStyle(isEnabled ? .white : .white.opacity(0.5))
                 Spacer()

@@ -21,7 +21,6 @@
 		A1000001000000000000003 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000013 /* Preferences.swift */; };
 		A1000001000000000000004 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000014 /* main.swift */; };
 		A1000001000000000000005 /* GlideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000015 /* GlideTests.swift */; };
-		F907ABDDEEAF5BF83F0AF9EA /* readme.md in Resources */ = {isa = PBXBuildFile; fileRef = F907A4D20267246716869421 /* readme.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +35,11 @@
 
 /* Begin PBXFileReference section */
 		055C56832F557FC200E77FEB /* Glide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Glide.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		055C56842F558FD100E77FEB /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		055C56852F558FEB00E77FEB /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		055C56862F55900400E77FEB /* app-icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "app-icon.png"; sourceTree = "<group>"; };
+		055C56872F55900400E77FEB /* drop-down.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "drop-down.png"; sourceTree = "<group>"; };
+		055C56882F55900400E77FEB /* onboarding.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = onboarding.png; sourceTree = "<group>"; };
 		0589455B2F54B0C300BCCC44 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		0589455D2F54B0CD00BCCC44 /* OnboardingWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindowController.swift; sourceTree = "<group>"; };
 		05B138B52F5535F00006C52C /* StatusMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuView.swift; sourceTree = "<group>"; };
@@ -52,8 +56,6 @@
 		A1000001000000000000013 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		A1000001000000000000014 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		A1000001000000000000015 /* GlideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlideTests.swift; sourceTree = "<group>"; };
-		F907A0E10208B2B4C63E46E3 /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
-		F907A4D20267246716869421 /* readme.md */ = {isa = PBXFileReference; lastKnownFileType = file.md; path = readme.md; sourceTree = "<group>"; };
 		F907AB0E17E61960C00A089F /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = file.gitignore; path = .gitignore; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -77,6 +79,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		055C56892F55900400E77FEB /* docs */ = {
+			isa = PBXGroup;
+			children = (
+				055C56862F55900400E77FEB /* app-icon.png */,
+				055C56872F55900400E77FEB /* drop-down.png */,
+				055C56882F55900400E77FEB /* onboarding.png */,
+			);
+			path = docs;
+			sourceTree = "<group>";
+		};
 		6ED47B58183BF3E800859244 = {
 			isa = PBXGroup;
 			children = (
@@ -85,8 +97,9 @@
 				6ED47B63183BF3E800859244 /* Frameworks */,
 				6ED47B62183BF3E800859244 /* Products */,
 				F907AB0E17E61960C00A089F /* .gitignore */,
-				F907A0E10208B2B4C63E46E3 /* LICENSE.txt */,
-				F907A4D20267246716869421 /* readme.md */,
+				055C56842F558FD100E77FEB /* LICENSE */,
+				055C56892F55900400E77FEB /* docs */,
+				055C56852F558FEB00E77FEB /* README.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -197,7 +210,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 2630;
-				ORGANIZATIONNAME = "Daniel Marcotte";
+				ORGANIZATIONNAME = "Todd Papaioannou";
 				TargetAttributes = {
 					6ED47B81183BF3E800859244 = {
 						TestTargetID = 6ED47B60183BF3E800859244;
@@ -231,7 +244,6 @@
 				6ED47B6F183BF3E800859244 /* InfoPlist.strings in Resources */,
 				6ED47B7D183BF3E800859244 /* Images.xcassets in Resources */,
 				6ED47B7B183BF3E800859244 /* MainMenu.xib in Resources */,
-				F907ABDDEEAF5BF83F0AF9EA /* readme.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -416,6 +428,8 @@
 				CODE_SIGN_IDENTITY = "-";
 				DEAD_CODE_STRIPPING = YES;
 				INFOPLIST_FILE = "Glide/Glide-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Glide;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.glide;
 				PRODUCT_MODULE_NAME = Glide;
@@ -434,8 +448,10 @@
 				CODE_SIGN_IDENTITY = "-";
 				DEAD_CODE_STRIPPING = YES;
 				INFOPLIST_FILE = "Glide/Glide-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Glide;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = io.github.glide;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.drluckyspin.glide;
 				PRODUCT_MODULE_NAME = Glide;
 				PRODUCT_NAME = Glide;
 				SDKROOT = macosx;

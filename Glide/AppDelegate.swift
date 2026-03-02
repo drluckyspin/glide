@@ -445,8 +445,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Anchor just below the status-bar icon.
             let anchorRect = NSRect(x: 0, y: button.bounds.height - 1, width: button.bounds.width, height: 1)
             statusPopover.show(relativeTo: anchorRect, of: button, preferredEdge: .maxY)
-            // Visual tweak: move closer to icon for menu-like feel.
-            nudgePopoverDown()
+            // Defer window adjustment to avoid layout recursion warnings.
+            DispatchQueue.main.async { [weak self] in
+                self?.nudgePopoverDown()
+            }
             installClickMonitors()
         }
     }

@@ -14,7 +14,6 @@
 		6ED47B6F183BF3E800859244 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6ED47B6D183BF3E800859244 /* InfoPlist.strings */; };
 		6ED47B7B183BF3E800859244 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 6ED47B79183BF3E800859244 /* MainMenu.xib */; };
 		6ED47B7D183BF3E800859244 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ED47B7C183BF3E800859244 /* Images.xcassets */; };
-		6ED47B84183BF3E800859244 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6ED47B83183BF3E800859244 /* XCTest.framework */; };
 		6ED47B85183BF3E800859244 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6ED47B64183BF3E800859244 /* Cocoa.framework */; };
 		6ED47B8D183BF3E800859244 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6ED47B8B183BF3E800859244 /* InfoPlist.strings */; };
 		A1000001000000000000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000001000000000000011 /* AppDelegate.swift */; };
@@ -36,17 +35,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		055C56832F557FC200E77FEB /* Glide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Glide.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0589455B2F54B0C300BCCC44 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		0589455D2F54B0CD00BCCC44 /* OnboardingWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindowController.swift; sourceTree = "<group>"; };
 		05B138B52F5535F00006C52C /* StatusMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusMenuView.swift; sourceTree = "<group>"; };
 		6E238EE0184504BC00E47948 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/MainMenu.xib; sourceTree = "<group>"; };
-		6ED47B61183BF3E800859244 /* Glide.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Glide.app; path = /Users/lucky/Development/Projects/gh/glide/build/Debug/Glide.app; sourceTree = "<absolute>"; };
 		6ED47B64183BF3E800859244 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		6ED47B6C183BF3E800859244 /* Glide-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Glide-Info.plist"; sourceTree = "<group>"; };
 		6ED47B6E183BF3E800859244 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		6ED47B7C183BF3E800859244 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		6ED47B82183BF3E800859244 /* GlideTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlideTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		6ED47B83183BF3E800859244 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		6ED47B8A183BF3E800859244 /* GlideTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GlideTests-Info.plist"; sourceTree = "<group>"; };
 		6ED47B8C183BF3E800859244 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		A1000001000000000000011 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -73,7 +71,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				6ED47B85183BF3E800859244 /* Cocoa.framework in Frameworks */,
-				6ED47B84183BF3E800859244 /* XCTest.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -97,6 +94,7 @@
 			isa = PBXGroup;
 			children = (
 				6ED47B82183BF3E800859244 /* GlideTests.xctest */,
+				055C56832F557FC200E77FEB /* Glide.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -105,7 +103,6 @@
 			isa = PBXGroup;
 			children = (
 				6ED47B64183BF3E800859244 /* Cocoa.framework */,
-				6ED47B83183BF3E800859244 /* XCTest.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -171,7 +168,7 @@
 			);
 			name = Glide;
 			productName = Glide;
-			productReference = 6ED47B61183BF3E800859244 /* Glide.app */;
+			productReference = 055C56832F557FC200E77FEB /* Glide.app */;
 			productType = "com.apple.product-type.application";
 		};
 		6ED47B81183BF3E800859244 /* GlideTests */ = {

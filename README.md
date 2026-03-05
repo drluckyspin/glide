@@ -41,10 +41,12 @@ You can customize which modifier keys are required from the menu bar dropdown. *
 ### Quick start
 
 * Clone the repo, then open the project with `make open` (or open `Glide.xcodeproj` in Xcode)
+* If you have not developed with Xcode before `xcodebuild -runFirstLaunch`
 * Build from Terminal with `make build` (or `make build-debug`)
 * Run tests with `make test`
 * Run the built app with `make run`
 * Clean local build output with `make clean`
+* Install your current version into /Applications `make install`
 
 ### Xcode and dependency requirements
 
@@ -53,6 +55,14 @@ You can customize which modifier keys are required from the menu bar dropdown. *
 * Swift language version is `5.0`
 * Uses Apple frameworks only (`Cocoa`, `SwiftUI`, `XCTest`) and Accessibility APIs
 * No third-party package dependencies (no SwiftPM/CocoaPods/Carthage required)
+* Automate package releae and build with a GH runner
+
+## Roadmap
+
+* Add support for registering to start automatically at startup
+* Enable users to select their own color scheme
+* Add an About dialog with version
+* Add "check for updates" functionality
 
 ## Contributing
 

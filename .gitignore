@@ -16,6 +16,7 @@ xcuserdata/
 *.ipa
 *.dSYM.zip
 *.dSYM
+*.dmg
 
 # Swift Package Manager
 .build/

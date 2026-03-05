@@ -125,8 +125,10 @@ open: ## Open the Xcode project
 # -----------------------------------------------------------------------------------------------------------
 # Package (Create DMG for local testing (version: dev))
 # -----------------------------------------------------------------------------------------------------------
-package: PACKAGE_VERSION = $(VERSION_DEV) ## Create DMG for local testing (version: dev)
-release: PACKAGE_VERSION = $(VERSION_RELEASE) ## Create DMG for distribution (version from Info.plist)
+package: PACKAGE_VERSION = $(VERSION_DEV)
+package: ## Create DMG for local testing (version: dev)
+release: PACKAGE_VERSION = $(VERSION_RELEASE)
+release: ## Create DMG for distribution (version from Info.plist)
 
 package release:
 	@$(LOGGER) log_separator
@@ -135,8 +137,8 @@ package release:
 	cleanup() { \
 		err=$$?; \
 		if [ $$err -ne 0 ]; then \
-			source $(MAKEFILE_DIR)scripts/log.bash && log_warning "Cleaning up artifacts after failure..."; \
-			rm -f Glide-$(PACKAGE_VERSION).dmg rw.*.Glide-$(PACKAGE_VERSION).dmg; \
+			source $(MAKEFILE_DIR)scripts/log.bash && log_warning "Cleaning up interstitial artifacts after failure..."; \
+			rm -f rw.*.Glide-$(PACKAGE_VERSION).dmg; \
 		fi; \
 		exit $$err; \
 	}; \

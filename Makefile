@@ -158,6 +158,7 @@ package release:
 		CODE_SIGNING_ALLOWED=NO; \
 	command -v create-dmg >/dev/null 2>&1 || brew install create-dmg; \
 	mkdir -p $(DIST_DIR); \
+	rm -rf $(DIST_DIR)/Glide.app; \
 	cp -R $(ARCHIVE_PATH)/Products/Applications/Glide.app $(DIST_DIR)/Glide.app; \
 	create-dmg \
 		--volname "Glide $(PACKAGE_VERSION)" \

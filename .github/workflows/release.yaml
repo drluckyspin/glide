@@ -35,6 +35,7 @@ jobs:
       - name: Prepare App for DMG
         run: |
           mkdir -p ./build/dist
+          rm -rf ./build/dist/Glide.app
           cp -R ./build/Glide.xcarchive/Products/Applications/Glide.app ./build/dist/Glide.app
 
       - name: Create Fancy DMG

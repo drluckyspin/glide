@@ -1,31 +1,103 @@
+# -----------------------------------------------------------------------------------------------------------
+# Glide Makefile
+# -----------------------------------------------------------------------------------------------------------
+# This Makefile provides commands to build, run, and package the Glide macOS app.
+# Glide adds easy modifier key + mouse drag move and resize capabilities to macOS.
+#
+# Usage:
+#   make <command>
+#
+# Available Commands:
+#   help                    : Show this help message
+#   build                   : Build (Release configuration)
+#   build-debug             : Build (Debug configuration)
+#   clean                   : Clean build artifacts
+#   install                 : Build and install to /Applications
+#   open                    : Open the Xcode project
+#   package                 : Create DMG for local testing (version: dev)
+#   release                 : Create DMG for distribution (version from Info.plist)
+#   run                     : Build and run the app
+#   test                    : Run tests (Debug configuration)
+#
+# -----------------------------------------------------------------------------------------------------------
+
+# Default target
+all: help
+
+# Default shell
+SHELL := /bin/bash
+
+# Import log functions (resolve relative to this file)
+MAKEFILE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+LOGGER := source $(MAKEFILE_DIR)scripts/log.bash &&
+RESET := \033[0m
+DIM := \033[2m
+
+# Xcode specific variables
 PROJECT         = Glide.xcodeproj
 SCHEME          = Glide
 CONFIG          = Release
 DEST            = platform=macOS
 BUILD_OUTPUT_DIR = $(CURDIR)/build
 
-.PHONY: help build build-debug run install test clean open
+# Version variables
+VERSION_DEV     := dev
+VERSION_RELEASE := $(shell /usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Glide/Glide-Info.plist)
+ARCHIVE_PATH    = $(BUILD_OUTPUT_DIR)/Glide.xcarchive
+DIST_DIR        = $(BUILD_OUTPUT_DIR)/dist
 
-help:
-	@echo "make help         - Show this help"
-	@echo "make build        - Build (Release configuration)"
-	@echo "make build-debug  - Build (Debug configuration)"
-	@echo "make run          - Build and run the app"
-	@echo "make install      - Build and install to ~/Applications"
-	@echo "make test         - Run tests (Debug configuration)"
-	@echo "make clean        - Clean build artifacts"
-	@echo "make open         - Open the Xcode project"
+# All Phony targets
+.PHONY: help build build-debug run install test clean open package release
 
-build:
+
+# -----------------------------------------------------------------------------------------------------------
+# Help (Show this help message)
+# -----------------------------------------------------------------------------------------------------------
+help: ## Show this help message
+	@$(LOGGER) log_banner
+	@$(LOGGER) log_info "Available make targets:"
+	@echo ""
+	@(grep -E '^[[:space:]]*help:.*## .*$$' $(MAKEFILE_LIST) 2>/dev/null; grep -E '^[[:space:]]*[a-zA-Z0-9][a-zA-Z0-9_ -]*:.*## .*$$' $(MAKEFILE_LIST) | grep -v '^[[:space:]]*help:.*##' | sort) | \
+		awk -F' ## ' '{ n = index($$1, ":"); target = substr($$1, 1, n-1); gsub(/^[ \t]+|[ \t]+$$/, "", target); desc = $$2; gsub(/^[ \t]+|[ \t]+$$/, "", desc); printf " %-22s$(RESET) $(DIM)- %s$(RESET)\n", target, desc }'
+	@echo ""
+
+# -----------------------------------------------------------------------------------------------------------
+# Build (Release configuration)
+# -----------------------------------------------------------------------------------------------------------
+build: ## Build (Release configuration)
+	@$(LOGGER) log_separator
+	@$(LOGGER) log_info "Building Glide"
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration $(CONFIG) -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)" build
 
-build-debug:
+# -----------------------------------------------------------------------------------------------------------
+# Build (Debug configuration)
+# -----------------------------------------------------------------------------------------------------------
+build-debug: ## Build (Debug configuration)
+	@$(LOGGER) log_separator
+	@$(LOGGER) log_info "Building Glide (Debug configuration)"
 	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)" build
+	@$(LOGGER) log_success "Build complete"
 
-run: build
-	open "$(BUILD_OUTPUT_DIR)/Build/Products/$(CONFIG)/Glide.app"
+# -----------------------------------------------------------------------------------------------------------
+# Clean (Clean build artifacts)
+# -----------------------------------------------------------------------------------------------------------
+clean: ## Clean build artifacts
+	@$(LOGGER) log_separator
+	@$(LOGGER) log_info "Cleaning build artifacts"
+	@$(LOGGER) log_indent log_dim "Removing build output..."
+	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration $(CONFIG) -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)" clean
+	rm -rf "$(BUILD_OUTPUT_DIR)"
+	@$(LOGGER) log_indent log_dim "Removing DMG files..."
+	rm -f Glide-$(VERSION_DEV).dmg Glide-$(VERSION_RELEASE).dmg
+	rm -f rw.*.Glide-*.dmg
+	@$(LOGGER) log_success "Clean complete"
 
-install: build
+# -----------------------------------------------------------------------------------------------------------
+# Install (Build and install to /Applications)
+# -----------------------------------------------------------------------------------------------------------
+install: build ## Build and install to ~/Applications
+	@$(LOGGER) log_separator
+	@$(LOGGER) log_info "Installing Glide to /Applications"
 	@if [ -d "/Applications/Glide.app" ]; then \
 		printf "Glide is already installed in /Applications. Replace it? [y/N] "; \
 		read answer; \
@@ -33,24 +105,78 @@ install: build
 			y|Y|yes|YES) \
 				rm -rf "/Applications/Glide.app"; \
 				ditto "$(BUILD_OUTPUT_DIR)/Build/Products/$(CONFIG)/Glide.app" "/Applications/Glide.app"; \
-				echo "Installed Glide to /Applications/Glide.app"; \
+				$(LOGGER) log_success "Installed Glide to /Applications/Glide.app"; \
 				;; \
 			*) \
-				echo "Install canceled."; \
+				$(LOGGER) log_dim "Install canceled."; \
 				;; \
 		esac; \
 	else \
 		ditto "$(BUILD_OUTPUT_DIR)/Build/Products/$(CONFIG)/Glide.app" "/Applications/Glide.app"; \
-		echo "Installed Glide to /Applications/Glide.app"; \
+		$(LOGGER) log_success "Installed Glide to /Applications/Glide.app"; \
 	fi
 
-test:
-	xcodebuild test -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)"
-
-clean:
-	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration $(CONFIG) -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)" clean
-	rm -rf "$(BUILD_OUTPUT_DIR)"
-
-open:
+# -----------------------------------------------------------------------------------------------------------
+# Open (Open the Xcode project)
+# -----------------------------------------------------------------------------------------------------------
+open: ## Open the Xcode project
 	open $(PROJECT)
 
+# -----------------------------------------------------------------------------------------------------------
+# Package (Create DMG for local testing (version: dev))
+# -----------------------------------------------------------------------------------------------------------
+package: PACKAGE_VERSION = $(VERSION_DEV) ## Create DMG for local testing (version: dev)
+release: PACKAGE_VERSION = $(VERSION_RELEASE) ## Create DMG for distribution (version from Info.plist)
+
+package release:
+	@$(LOGGER) log_separator
+	@$(LOGGER) log_info "Creating DMG for Glide $(PACKAGE_VERSION)..."
+	@set -e; \
+	cleanup() { \
+		err=$$?; \
+		if [ $$err -ne 0 ]; then \
+			source $(MAKEFILE_DIR)scripts/log.bash && log_warning "Cleaning up artifacts after failure..."; \
+			rm -f Glide-$(PACKAGE_VERSION).dmg rw.*.Glide-$(PACKAGE_VERSION).dmg; \
+		fi; \
+		exit $$err; \
+	}; \
+	trap cleanup EXIT; \
+	xcodebuild archive \
+		-project $(PROJECT) \
+		-scheme $(SCHEME) \
+		-configuration $(CONFIG) \
+		-archivePath $(ARCHIVE_PATH) \
+		-destination '$(DEST)' \
+		CODE_SIGNING_ALLOWED=NO; \
+	command -v create-dmg >/dev/null 2>&1 || brew install create-dmg; \
+	mkdir -p $(DIST_DIR); \
+	cp -R $(ARCHIVE_PATH)/Products/Applications/Glide.app $(DIST_DIR)/Glide.app; \
+	create-dmg \
+		--volname "Glide $(PACKAGE_VERSION)" \
+		--volicon "docs/app-icon.png" \
+		--window-pos 200 120 \
+		--window-size 600 400 \
+		--icon-size 100 \
+		--icon "Glide.app" 175 120 \
+		--hide-extension "Glide.app" \
+		--app-drop-link 425 120 \
+		Glide-$(PACKAGE_VERSION).dmg \
+		$(DIST_DIR)/; \
+	$(LOGGER) log_success "Created Glide-$(PACKAGE_VERSION).dmg"
+
+# -----------------------------------------------------------------------------------------------------------
+# Run (Build and run the app)
+# -----------------------------------------------------------------------------------------------------------
+run: build ## Build and run the app
+	@$(LOGGER) log_separator
+	@$(LOGGER) log_info "Running Glide"
+	open "$(BUILD_OUTPUT_DIR)/Build/Products/$(CONFIG)/Glide.app"
+
+# -----------------------------------------------------------------------------------------------------------
+# Test (Run tests (Debug configuration))
+# -----------------------------------------------------------------------------------------------------------
+test: ## Run tests (Debug configuration)
+	@$(LOGGER) log_separator
+	@$(LOGGER) log_info "Running tests"
+	xcodebuild test -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)"
+	@$(LOGGER) log_success "Tests complete"

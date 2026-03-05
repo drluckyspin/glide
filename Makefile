@@ -46,6 +46,10 @@ VERSION_RELEASE := $(shell /usr/libexec/PlistBuddy -c "Print CFBundleShortVersio
 ARCHIVE_PATH    = $(BUILD_OUTPUT_DIR)/Glide.xcarchive
 DIST_DIR        = $(BUILD_OUTPUT_DIR)/dist
 
+# DMG volume icon: uses the app's built AppIcon.icns (create-dmg requires .icns format).
+# To use docs/app-icon.png instead, convert it first: add docs/app-icon.icns and set DMG_VOLICON to that path.
+DMG_VOLICON     = $(DIST_DIR)/Glide.app/Contents/Resources/AppIcon.icns
+
 # All Phony targets
 .PHONY: help build build-debug run install test clean open package release
 
@@ -134,12 +138,14 @@ package release:
 	@$(LOGGER) log_separator
 	@$(LOGGER) log_info "Creating DMG for Glide $(PACKAGE_VERSION)..."
 	@set -e; \
+	icon_tmp=""; rsrc_tmp=""; \
 	cleanup() { \
 		err=$$?; \
 		if [ $$err -ne 0 ]; then \
 			source $(MAKEFILE_DIR)scripts/log.bash && log_warning "Cleaning up interstitial artifacts after failure..."; \
 			rm -f rw.*.Glide-$(PACKAGE_VERSION).dmg; \
 		fi; \
+		rm -f "$$icon_tmp" "$$rsrc_tmp" 2>/dev/null || true; \
 		exit $$err; \
 	}; \
 	trap cleanup EXIT; \
@@ -155,7 +161,7 @@ package release:
 	cp -R $(ARCHIVE_PATH)/Products/Applications/Glide.app $(DIST_DIR)/Glide.app; \
 	create-dmg \
 		--volname "Glide $(PACKAGE_VERSION)" \
-		--volicon "docs/app-icon.png" \
+		--volicon "$(DMG_VOLICON)" \
 		--window-pos 200 120 \
 		--window-size 600 400 \
 		--icon-size 100 \
@@ -164,6 +170,13 @@ package release:
 		--app-drop-link 425 120 \
 		Glide-$(PACKAGE_VERSION).dmg \
 		$(DIST_DIR)/; \
+	icon_tmp=$$(mktemp -t dmg-icon.XXXXXXXXXX.icns); \
+	rsrc_tmp=$$(mktemp -t dmg-icon.XXXXXXXXXX.rsrc); \
+	cp "$(DMG_VOLICON)" "$$icon_tmp"; \
+	sips -i "$$icon_tmp" >/dev/null 2>&1; \
+	DeRez -only icns "$$icon_tmp" > "$$rsrc_tmp" 2>/dev/null; \
+	Rez -append "$$rsrc_tmp" -o Glide-$(PACKAGE_VERSION).dmg; \
+	SetFile -a C Glide-$(PACKAGE_VERSION).dmg; \
 	$(LOGGER) log_success "Created Glide-$(PACKAGE_VERSION).dmg"
 
 # -----------------------------------------------------------------------------------------------------------

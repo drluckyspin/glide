@@ -1,0 +1,70 @@
+name: Release macOS App (Pro DMG)
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Version from Tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build macOS App
+        run: |
+          xcodebuild archive \
+            -project Glide.xcodeproj \
+            -scheme Glide \
+            -configuration Release \
+            -archivePath ./build/Glide.xcarchive \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Prepare App for DMG
+        run: |
+          mkdir -p ./build/dist
+          rm -rf ./build/dist/Glide.app
+          cp -R ./build/Glide.xcarchive/Products/Applications/Glide.app ./build/dist/Glide.app
+
+      - name: Create Fancy DMG
+        run: |
+          create-dmg \
+            --volname "Glide ${{ steps.get_version.outputs.VERSION }}" \
+            --volicon "./build/dist/Glide.app/Contents/Resources/AppIcon.icns" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "Glide.app" 175 120 \
+            --hide-extension "Glide.app" \
+            --app-drop-link 425 120 \
+            "Glide-${{ steps.get_version.outputs.VERSION }}.dmg" \
+            ./build/dist/
+          # Embed icon on DMG file so it shows in Finder (not just when mounted)
+          icon_tmp=$(mktemp -t dmg-icon.XXXXXXXXXX.icns)
+          rsrc_tmp=$(mktemp -t dmg-icon.XXXXXXXXXX.rsrc)
+          trap "rm -f $icon_tmp $rsrc_tmp" EXIT
+          cp ./build/dist/Glide.app/Contents/Resources/AppIcon.icns "$icon_tmp"
+          sips -i "$icon_tmp" >/dev/null 2>&1
+          DeRez -only icns "$icon_tmp" > "$rsrc_tmp" 2>/dev/null
+          Rez -append "$rsrc_tmp" -o "Glide-${{ steps.get_version.outputs.VERSION }}.dmg"
+          SetFile -a C "Glide-${{ steps.get_version.outputs.VERSION }}.dmg"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Glide-${{ steps.get_version.outputs.VERSION }}.dmg
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -197,6 +197,19 @@ jobs:
           xcrun stapler validate "$DMG"
 
       # ----------------------------
+      # Zip DMG (preserves custom icon; GitHub upload strips resource forks)
+      # ----------------------------
+      - name: Create release zip
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          DMG="Glide-$VERSION.dmg"
+          ZIP="Glide-$VERSION.zip"
+
+          ditto -c -k --sequesterRsrc "$DMG" "$ZIP"
+
+      # ----------------------------
       # Final verification (optional but helpful)
       # ----------------------------
       - name: Verify Gatekeeper acceptance (sanity check)
@@ -212,7 +225,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Glide-${{ steps.get_version.outputs.VERSION }}.dmg
+          files: |
+            Glide-${{ steps.get_version.outputs.VERSION }}.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -49,6 +49,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - NSApplicationDelegate
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // -force-onboarding: always show onboarding (for testing the UI, e.g. with make run-onboarding).
+        let forceOnboarding = ProcessInfo.processInfo.arguments.contains("-force-onboarding")
+        if forceOnboarding {
+            showOnboarding()
+            startAccessibilityCheckTimer()
+            return
+        }
         // If AX permission is already granted, we can immediately start handling events.
         // Otherwise, route through onboarding and poll until permission appears.
         if hasAccessibilityPermission() {
@@ -348,9 +355,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         enableEventTap(moveResize)
     }
 
+    /// True when running from a translocated path (e.g. directly from a DMG without copying to Applications).
+    /// Translocation breaks accessibility permission flow; users must copy the app to Applications first.
+    /// Use launch arg "-translocation" to force the banner for testing (e.g. `open -a Glide --args -translocation`).
+    private var isRunningTranslocated: Bool {
+        ProcessInfo.processInfo.arguments.contains("-translocation")
+            || Bundle.main.bundlePath.contains("App Translocation")
+            || Bundle.main.bundlePath.contains("AppTranslocation")
+    }
+
     private func showOnboarding() {
         // let debugText = "AX trusted: \(hasAccessibilityPermission())\nBundle: \(Bundle.main.bundlePath)"
         let controller = OnboardingWindowController(
+            isTranslocated: isRunningTranslocated,
             onOpenSettings: {
                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
                     NSWorkspace.shared.open(url)

@@ -67,11 +67,17 @@ jobs:
             -T /usr/bin/codesign \
             -T /usr/bin/security
 
+          # Import Developer ID intermediate certs (required for chain validation)
+          for cert in DeveloperIDG2CA DeveloperIDCA; do
+            curl -sL "https://www.apple.com/certificateauthority/${cert}.cer" -o "$RUNNER_TEMP/${cert}.cer"
+            security import "$RUNNER_TEMP/${cert}.cer" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security 2>/dev/null || true
+          done
+
           # Allow codesign to access the key non-interactively
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
           echo "Available signing identities:"
-          security find-identity -v -p codesigning || true
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH" || true
 
       # ----------------------------
       # Codesign the .app (Developer ID Application + hardened runtime)
@@ -81,24 +87,22 @@ jobs:
         run: |
           set -euo pipefail
 
+          KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain-db"
           APP="./build/dist/Glide.app"
 
-          # Pick the first Developer ID Application identity in the keychain
-          SIGN_ID="$(security find-identity -v -p codesigning \
-            | grep 'Developer ID Application' \
-            | head -n 1 \
-            | sed -E 's/.*"(.+)".*/\1/')"
+          # Pick the first identity from the signing keychain (matches Makefile logic)
+          FIND_OUT="$(security find-identity -p codesigning "$KEYCHAIN_PATH" 2>/dev/null)"
+          SIGN_ID="$(echo "$FIND_OUT" | grep -E '^[[:space:]]+[0-9]+\) [A-Fa-f0-9]{40}' | head -n 1 | sed -E 's/^[[:space:]]*[0-9]+\) ([A-Fa-f0-9]{40}) .*/\1/' | tr -d '\n' || true)"
 
           if [[ -z "${SIGN_ID:-}" ]]; then
-            echo "ERROR: No 'Developer ID Application' identity found in keychain."
-            security find-identity -v -p codesigning || true
+            echo "ERROR: No codesigning identity found in keychain."
+            echo "$FIND_OUT"
             exit 1
           fi
 
           echo "Using signing identity: $SIGN_ID"
 
-          # If you have entitlements, add: --entitlements path/to/entitlements.plist
-          codesign --force --options runtime --timestamp --sign "$SIGN_ID" "$APP"
+          codesign --force --options runtime --timestamp --sign "$SIGN_ID" --keychain "$KEYCHAIN_PATH" "$APP"
 
           # Verify signing
           codesign -vvv --deep --strict "$APP"
@@ -147,6 +151,9 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ steps.get_version.outputs.VERSION }}"
+          DMG="Glide-$VERSION.dmg"
+
+          rm -f "$DMG" rw.*."$DMG" 2>/dev/null || true
 
           create-dmg \
             --volname "Glide $VERSION" \
@@ -157,7 +164,7 @@ jobs:
             --icon "Glide.app" 175 120 \
             --hide-extension "Glide.app" \
             --app-drop-link 425 120 \
-            "Glide-$VERSION.dmg" \
+            "$DMG" \
             ./build/dist/
 
           # Embed icon on DMG file so it shows in Finder (not just when mounted)
@@ -167,8 +174,8 @@ jobs:
           cp ./build/dist/Glide.app/Contents/Resources/AppIcon.icns "$icon_tmp"
           sips -i "$icon_tmp" >/dev/null 2>&1
           DeRez -only icns "$icon_tmp" > "$rsrc_tmp" 2>/dev/null
-          Rez -append "$rsrc_tmp" -o "Glide-$VERSION.dmg"
-          SetFile -a C "Glide-$VERSION.dmg"
+          Rez -append "$rsrc_tmp" -o "$DMG"
+          SetFile -a C "$DMG"
 
       # ----------------------------
       # Notarize + staple the DMG (best UX for users)

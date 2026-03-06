@@ -2,6 +2,10 @@ name: Release macOS App (Pro DMG)
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Version for release (e.g. 1.2.0). If omitted, uses VERSION file."
+        required: false
   push:
     tags:
       - "v*"
@@ -16,10 +20,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get Version from Tag
+      - name: Get Version
         id: get_version
         shell: bash
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION=$(cat VERSION 2>/dev/null | tr -d '\n' | tr -d ' ' || /usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Glide/Glide-Info.plist)
+          fi
+          VERSION="${VERSION#v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       # ----------------------------
       # Build (unsigned)

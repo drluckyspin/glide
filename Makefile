@@ -289,8 +289,12 @@ sign:
 	VERSION="$(VERSION_RELEASE)"; \
 	DMG="Glide-$$VERSION.dmg"; \
 	icon_tmp=""; rsrc_tmp=""; \
+	ORIG_KEYCHAINS=$$(security list-keychains -d user 2>/dev/null | tr '\n' ' '); \
+	ORIG_DEFAULT=$$(security default-keychain -d user 2>/dev/null || true); \
 	cleanup() { \
 		err=$$?; \
+		security list-keychains -d user -s $$ORIG_KEYCHAINS 2>/dev/null || true; \
+		[ -n "$$ORIG_DEFAULT" ] && security default-keychain -d user -s "$$ORIG_DEFAULT" 2>/dev/null || true; \
 		security delete-keychain "$$KEYCHAIN_PATH" 2>/dev/null || true; \
 		rm -f "$$icon_tmp" "$$rsrc_tmp" 2>/dev/null || true; \
 		if [ $$err -ne 0 ]; then \
@@ -304,7 +308,7 @@ sign:
 	security create-keychain -p "$$KEYCHAIN_PASSWORD" "$$KEYCHAIN_PATH"; \
 	security set-keychain-settings -t 3600 -u "$$KEYCHAIN_PATH"; \
 	security unlock-keychain -p "$$KEYCHAIN_PASSWORD" "$$KEYCHAIN_PATH"; \
-	security list-keychains -d user -s "$$KEYCHAIN_PATH" $$(security list-keychains -d user 2>/dev/null | tr '\n' ' '); \
+	security list-keychains -d user -s "$$KEYCHAIN_PATH" $$ORIG_KEYCHAINS; \
 	security default-keychain -s "$$KEYCHAIN_PATH"; \
 	echo "$$APPLE_SIGNING_P12" | base64 --decode > "$$TEMP_DIR/signing.p12"; \
 	security import "$$TEMP_DIR/signing.p12" -k "$$KEYCHAIN_PATH" -P "$$APPLE_SIGNING_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security; \

@@ -47,6 +47,7 @@ You can customize which modifier keys are required from the menu bar dropdown. *
 * Run the built app with `make run`
 * Clean local build output with `make clean`
 * Install your current version into /Applications `make install`
+* Package up a version for testing `make package`
 
 ### Xcode and dependency requirements
 
@@ -55,7 +56,7 @@ You can customize which modifier keys are required from the menu bar dropdown. *
 * Swift language version is `5.0`
 * Uses Apple frameworks only (`Cocoa`, `SwiftUI`, `XCTest`) and Accessibility APIs
 * No third-party package dependencies (no SwiftPM/CocoaPods/Carthage required)
-* Automate package releae and build with a GH runner
+* Automate package release and build with a GH runner
 
 ## Roadmap
 

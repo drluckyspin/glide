@@ -3,17 +3,19 @@ import SwiftUI
 
 final class OnboardingWindowController: NSWindowController {
 
-    convenience init(onOpenSettings: @escaping () -> Void, onQuit: @escaping () -> Void, debugText: String?) {
+    convenience init(isTranslocated: Bool, onOpenSettings: @escaping () -> Void, onQuit: @escaping () -> Void, debugText: String?) {
         let hostingController = NSHostingController(
             rootView: OnboardingView(
+                isTranslocated: isTranslocated,
                 onOpenSettings: onOpenSettings,
                 onQuit: onQuit,
                 debugText: debugText
             )
         )
 
+        let windowHeight: CGFloat = isTranslocated ? 540 : 480
         let window = BorderlessKeyWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: 480),
+            contentRect: NSRect(x: 0, y: 0, width: 420, height: windowHeight),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false

@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 @testable import Glide
 
@@ -54,5 +55,41 @@ final class GlideTests: XCTestCase {
         let mr = WindowGlide.shared
         XCTAssertNil(mr.trackedWindow)
         XCTAssertEqual(mr.dragEventCount, 0)
+    }
+
+    // MARK: - Onboarding: launch with banner for UI testing
+
+    /// Launches Glide with -force-onboarding -translocation so the onboarding dialog and
+    /// translocation banner are visible. Use `make run-onboarding` for the same effect.
+    func testLaunchOnboardingWithBanner() throws {
+        let testBundlePath = Bundle(for: type(of: self)).bundlePath
+        let appPath: String
+        if testBundlePath.contains("PlugIns") {
+            // Test runs inside app bundle: .../Glide.app/Contents/PlugIns/GlideTests.xctest
+            let plugInsDir = (testBundlePath as NSString).deletingLastPathComponent
+            let contentsDir = (plugInsDir as NSString).deletingLastPathComponent
+            appPath = (contentsDir as NSString).deletingLastPathComponent
+        } else {
+            // Test runs as sibling: .../Build/Products/Debug/GlideTests.xctest
+            let buildDir = (testBundlePath as NSString).deletingLastPathComponent
+            appPath = (buildDir as NSString).appendingPathComponent("Glide.app")
+        }
+        let appURL = URL(fileURLWithPath: appPath)
+
+        guard FileManager.default.fileExists(atPath: appPath) else {
+            throw XCTSkip("Glide.app not found at \(appPath). Run 'make build' first.")
+        }
+
+        let config = NSWorkspace.OpenConfiguration()
+        config.arguments = ["-force-onboarding", "-translocation"]
+        config.activates = true
+
+        let exp = expectation(description: "App launched")
+        NSWorkspace.shared.openApplication(at: appURL, configuration: config) { app, error in
+            XCTAssertNil(error, "Failed to launch: \(String(describing: error))")
+            XCTAssertNotNil(app)
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 5)
     }
 }

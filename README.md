@@ -27,7 +27,8 @@ You can customize which modifier keys are required from the menu bar dropdown. *
 ## Installation
 
 * Grab the latest version from the [Releases page](https://github.com/drluckyspin/glide/releases)
-* Unzip and run!
+* Open the DMG and **drag Glide to Applications** (do not run directly from the disk image)
+* Launch Glide from Applications
 * Enable Privacy Settings during onboarding
 
   ![Onboarding](docs/onboarding.png)
@@ -56,6 +57,8 @@ You can customize which modifier keys are required from the menu bar dropdown. *
 * Swift language version is `5.0`
 * Uses Apple frameworks only (`Cocoa`, `SwiftUI`, `XCTest`) and Accessibility APIs
 * No third-party package dependencies (no SwiftPM/CocoaPods/Carthage required)
+* **Brew tools** (for `make package` / `make release`): `create-dmg` — install with `brew install create-dmg`
+* Run `make check` to verify all dependencies (Xcode, brew, create-dmg)
 * Automate package release and build with a GH runner
 
 ## Roadmap

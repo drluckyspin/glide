@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct OnboardingView: View {
+    var isTranslocated: Bool
     var onOpenSettings: () -> Void
     var onQuit: () -> Void
     var debugText: String?
@@ -13,6 +14,26 @@ struct OnboardingView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
+                // Translocation warning: running from DMG without copying to Applications breaks permissions
+                if isTranslocated {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(.white)
+                        Text("Copy Glide to Applications first. Running from the disk image prevents permissions from working.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(.white)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(translocationBannerRed)
+                    .padding(.horizontal, 18)
+                    .padding(.top, 18)
+                    .padding(.bottom, 8)
+                }
+
                 // App icon
                 Spacer(minLength: 18)
                 Image("AppIcon-Purple")
@@ -131,6 +152,10 @@ struct OnboardingView: View {
         Color(red: 0.70, green: 0.52, blue: 1.0)
     }
 
+    private var translocationBannerRed: Color {
+        Color(red: 0.45, green: 0.08, blue: 0.08)
+    }
+
     private var backgroundGradient: LinearGradient {
         LinearGradient(
             colors: [
@@ -177,11 +202,23 @@ struct OnboardingView: View {
 #if DEBUG
 struct OnboardingView_Previews: PreviewProvider {
     static var previews: some View {
-        OnboardingView(
-            onOpenSettings: {},
-            onQuit: {},
-            debugText: "AX trusted: false\nBundle: /path/to/app"
-        )
+        Group {
+            OnboardingView(
+                isTranslocated: false,
+                onOpenSettings: {},
+                onQuit: {},
+                debugText: "AX trusted: false\nBundle: /path/to/app"
+            )
+            .previewDisplayName("Normal")
+
+            OnboardingView(
+                isTranslocated: true,
+                onOpenSettings: {},
+                onQuit: {},
+                debugText: nil
+            )
+            .previewDisplayName("Translocation banner")
+        }
     }
 }
 #endif

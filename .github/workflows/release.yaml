@@ -69,8 +69,8 @@ jobs:
 
           # Import Developer ID intermediate certs (required for chain validation)
           for cert in DeveloperIDG2CA DeveloperIDCA; do
-            curl -sL "https://www.apple.com/certificateauthority/${cert}.cer" -o "$RUNNER_TEMP/${cert}.cer"
-            security import "$RUNNER_TEMP/${cert}.cer" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security 2>/dev/null || true
+            curl -sfL "https://www.apple.com/certificateauthority/${cert}.cer" -o "$RUNNER_TEMP/${cert}.cer" \
+              && security import "$RUNNER_TEMP/${cert}.cer" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security
           done
 
           # Allow codesign to access the key non-interactively

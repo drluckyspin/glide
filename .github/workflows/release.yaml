@@ -2,10 +2,6 @@ name: Release macOS App (Pro DMG)
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version for release (e.g. 1.2.0). If omitted, uses VERSION file."
-        required: false
   push:
     tags:
       - "v*"
@@ -24,9 +20,7 @@ jobs:
         id: get_version
         shell: bash
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.version }}" ]]; then
-            VERSION="${{ github.event.inputs.version }}"
-          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             VERSION="${GITHUB_REF#refs/tags/}"
           else
             VERSION=$(cat VERSION 2>/dev/null | tr -d '\n' | tr -d ' ' || /usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Glide/Glide-Info.plist)
@@ -239,6 +233,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
           files: |
             Glide-${{ steps.get_version.outputs.VERSION }}.zip
           generate_release_notes: true

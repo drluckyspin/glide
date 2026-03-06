@@ -124,6 +124,7 @@ bump-version: ## Set app version from VERSION file
 		exit 1; \
 	fi
 	@V=$$(cat "$(MAKEFILE_DIR)VERSION" | tr -d '\n' | tr -d ' '); \
+	V=$${V#v}; \
 	if [ -z "$$V" ]; then \
 		source $(MAKEFILE_DIR)scripts/log.bash && log_error "VERSION file is empty"; \
 		exit 1; \

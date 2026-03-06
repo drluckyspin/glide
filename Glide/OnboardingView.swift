@@ -99,6 +99,7 @@ struct OnboardingView: View {
                         Text("Open System Settings")
                             .frame(maxWidth: .infinity)
                             .foregroundStyle(.white)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .padding(.vertical, 8)
@@ -111,6 +112,7 @@ struct OnboardingView: View {
                         Text("Quit")
                             .frame(maxWidth: .infinity)
                             .foregroundStyle(.white)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .padding(.vertical, 8)

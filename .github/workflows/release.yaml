@@ -1,6 +1,7 @@
 name: Release macOS App (Pro DMG)
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*"

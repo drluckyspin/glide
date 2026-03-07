@@ -50,6 +50,8 @@ You can customize which modifier keys are required from the menu bar dropdown. *
 * Install your current version into /Applications `make install`
 * Package up a version for testing `make package`
 
+Full details of the [Release Process](RELEASE.md).
+
 ### Xcode and dependency requirements
 
 * Xcode with macOS SDK support (project `LastUpgradeCheck` is `2630`)

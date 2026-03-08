@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Glide — Move & Resize Windows Effortlessly</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --purple-deep: #0d0a1a;
+        --purple-dark: #1a1030;
+        --purple-mid: #2d1b5e;
+        --purple-bright: #7c3aed;
+        --purple-glow: #a855f7;
+        --purple-light: #c084fc;
+        --purple-pale: #e9d5ff;
+        --pink-accent: #d946ef;
+        --white-soft: #f0e6ff;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      /* Override Tailwind text-sm */
+      .text-sm {
+        font-size: 0.9rem;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        background: #070514;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        font-family: "DM Sans", sans-serif;
+        background: #070514;
+        color: var(--white-soft);
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ── Background ── */
+      .cosmic-bg {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .cosmic-bg .blur-orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(64px);
+      }
+      .cosmic-bg .blur-orb-1 {
+        top: -8rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 820px;
+        height: 520px;
+        background: rgba(192, 38, 211, 0.2);
+      }
+      .cosmic-bg .blur-orb-2 {
+        top: 18rem;
+        left: -10rem;
+        width: 520px;
+        height: 520px;
+        background: rgba(139, 92, 246, 0.2);
+      }
+      .cosmic-bg .blur-orb-3 {
+        bottom: -220px;
+        right: -220px;
+        width: 620px;
+        height: 620px;
+        background: rgba(99, 102, 241, 0.2);
+      }
+      .cosmic-bg .radial-overlay {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at top,
+          rgba(124, 58, 237, 0.25),
+          transparent 55%
+        );
+      }
+      .cosmic-bg .dot-grid {
+        position: absolute;
+        inset: 0;
+        opacity: 0.07;
+        background-image: radial-gradient(
+          circle at 1px 1px,
+          white 1px,
+          transparent 0
+        );
+        background-size: 28px 28px;
+      }
+
+      .content-wrap {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* ── Nav ── */
+      nav {
+        backdrop-filter: blur(20px) saturate(1.4);
+        -webkit-backdrop-filter: blur(20px) saturate(1.4);
+        background: rgba(13, 10, 26, 0.7);
+        border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+      }
+
+      .nav-link {
+        color: rgba(233, 213, 255, 0.7);
+        transition: color 0.2s;
+      }
+      .nav-link:hover {
+        color: var(--purple-light);
+      }
+      .nav-logo-wrap {
+        display: inline-block;
+        line-height: 0;
+      }
+      .nav-logo {
+        width: 48px;
+        height: 48px;
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        box-shadow:
+          0 0 20px rgba(124, 58, 237, 0.35),
+          0 0 40px rgba(124, 58, 237, 0.15);
+        transition: transform 0.25s ease;
+      }
+
+      /* ── Hero ── */
+      .hero-badge {
+        background: rgba(124, 58, 237, 0.15);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        backdrop-filter: blur(8px);
+      }
+
+      .hero-title {
+        font-size: clamp(2.8rem, 6vw, 5rem);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.05;
+        background: linear-gradient(
+          135deg,
+          #ffffff 0%,
+          #e9d5ff 40%,
+          #c084fc 80%,
+          #a855f7 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .hero-sub {
+        color: rgba(233, 213, 255, 0.7);
+        font-size: clamp(1rem, 2vw, 1.25rem);
+        line-height: 1.6;
+        max-width: 540px;
+      }
+
+      .cta-btn {
+        background: linear-gradient(
+          135deg,
+          var(--purple-bright) 0%,
+          var(--pink-accent) 100%
+        );
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow:
+          0 0 30px rgba(124, 58, 237, 0.3),
+          0 0 60px rgba(124, 58, 237, 0.1);
+      }
+      .cta-btn:hover {
+        transform: translateY(-2px);
+        box-shadow:
+          0 0 40px rgba(124, 58, 237, 0.5),
+          0 0 80px rgba(124, 58, 237, 0.2);
+      }
+
+      .cta-secondary {
+        border: 1px solid rgba(124, 58, 237, 0.4);
+        background: rgba(124, 58, 237, 0.08);
+        transition: all 0.3s ease;
+      }
+      .cta-secondary:hover {
+        border-color: rgba(124, 58, 237, 0.7);
+        background: rgba(124, 58, 237, 0.15);
+      }
+
+      /* ── Screenshot showcase ── */
+      .screenshot-wrap {
+        perspective: 1200px;
+      }
+      .screenshot-card {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(124, 58, 237, 0.2);
+        box-shadow:
+          0 25px 60px rgba(0, 0, 0, 0.5),
+          0 0 80px rgba(124, 58, 237, 0.08),
+          inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .screenshot-card:hover {
+        transform: translateY(-6px) rotateX(1deg);
+      }
+      .screenshot-card img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      /* ── Feature cards ── */
+      .feature-card {
+        background: rgba(26, 16, 48, 0.6);
+        border: 1px solid rgba(124, 58, 237, 0.12);
+        border-radius: 16px;
+        backdrop-filter: blur(12px);
+        transition: all 0.35s ease;
+      }
+      .feature-card:hover {
+        border-color: rgba(124, 58, 237, 0.35);
+        background: rgba(26, 16, 48, 0.8);
+        transform: translateY(-4px);
+        box-shadow:
+          0 20px 50px rgba(0, 0, 0, 0.3),
+          0 0 40px rgba(124, 58, 237, 0.06);
+      }
+
+      .feature-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(
+          135deg,
+          rgba(124, 58, 237, 0.2),
+          rgba(168, 85, 247, 0.1)
+        );
+        border: 1px solid rgba(124, 58, 237, 0.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .feature-icon svg {
+        width: 22px;
+        height: 22px;
+        stroke: var(--purple-light);
+        fill: none;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* ── How it works ── */
+      .step-number {
+        font-family: "Space Mono", monospace;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--purple-glow);
+        letter-spacing: 0.1em;
+      }
+
+      .step-card {
+        background: rgba(26, 16, 48, 0.4);
+        border: 1px solid rgba(124, 58, 237, 0.1);
+        border-radius: 16px;
+        transition: all 0.3s ease;
+      }
+      .step-card:hover {
+        border-color: rgba(124, 58, 237, 0.3);
+      }
+
+      .kbd {
+        font-family: "Space Mono", monospace;
+        font-size: 0.8rem;
+        background: rgba(124, 58, 237, 0.15);
+        border: 1px solid rgba(124, 58, 237, 0.3);
+        border-radius: 6px;
+        padding: 3px 8px;
+        color: var(--purple-light);
+        white-space: nowrap;
+      }
+
+      /* ── Compatibility ── */
+      .compat-pill {
+        background: rgba(26, 16, 48, 0.5);
+        border: 1px solid rgba(124, 58, 237, 0.15);
+        border-radius: 100px;
+        padding: 8px 20px;
+        font-size: 0.9rem;
+        color: rgba(233, 213, 255, 0.8);
+        transition: all 0.3s ease;
+      }
+      .compat-pill:hover {
+        border-color: rgba(124, 58, 237, 0.4);
+      }
+      .compat-pill.highlight {
+        border-color: rgba(168, 85, 247, 0.5);
+        background: rgba(124, 58, 237, 0.12);
+        color: var(--purple-pale);
+      }
+
+      /* ── Feature/settings sections (text + screenshot) ── */
+      .settings-section {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2.5rem;
+        align-items: center;
+      }
+      @media (min-width: 768px) {
+        .settings-section {
+          grid-template-columns: 2fr 1fr;
+          gap: 3rem;
+        }
+        .settings-section--onboarding {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .settings-section .screenshot-wrap {
+        display: flex;
+      }
+      .settings-section .screenshot-wrap:first-child {
+        justify-content: flex-start;
+      }
+      .settings-section .screenshot-wrap:last-child {
+        justify-content: flex-end;
+      }
+      /* Wrap size matches onboarding.png (476×546) aspect ratio */
+      .settings-section .screenshot-card {
+        width: 350px;
+        max-width: 100%;
+        flex-shrink: 0;
+        aspect-ratio: 476/546;
+      }
+      .settings-section .screenshot-card img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        object-position: center;
+      }
+      /* Zoom onboarding image to crop built-in padding */
+      .settings-section .screenshot-card img.onboarding-img {
+        transform: scale(1.12);
+      }
+      .settings-checklist {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .settings-checklist li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+        color: rgba(233, 213, 255, 0.85);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+      .settings-checklist li:last-child {
+        margin-bottom: 0;
+      }
+      .settings-checklist .check {
+        flex-shrink: 0;
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        color: var(--purple-glow);
+      }
+      .setup-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+      }
+      .setup-step:last-child {
+        margin-bottom: 0;
+      }
+      .setup-step-num {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: rgba(124, 58, 237, 0.25);
+        border: 1px solid rgba(124, 58, 237, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "Space Mono", monospace;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: var(--purple-light);
+      }
+      .setup-step-content h4 {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: white;
+        margin-bottom: 0.15rem;
+      }
+      .setup-step-content p {
+        font-size: 0.85rem;
+        color: rgba(233, 213, 255, 0.6);
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      /* ── Modifier key pills ── */
+      .mod-keys {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.15em;
+        margin-left: 0.2em;
+        vertical-align: middle;
+      }
+      .mod-key {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.1em 0.28em;
+        border-radius: 4px;
+        font-family: "Space Mono", monospace;
+        font-size: 0.65em;
+        font-weight: 500;
+        background: rgba(56, 30, 125, 0.8);
+        color: #bc95ff;
+        border: 1px solid rgba(124, 58, 237, 0.5);
+        box-shadow:
+          0 0 8px rgba(124, 58, 237, 0.2),
+          inset 0 0 4px rgba(188, 149, 255, 0.06);
+        text-shadow: 0 0 4px rgba(188, 149, 255, 0.35);
+      }
+      .mod-key-plus {
+        color: rgba(233, 213, 255, 0.5);
+        font-size: 0.7em;
+        line-height: 1;
+      }
+
+      /* ── Trust strip ── */
+      .trust-item {
+        color: rgba(233, 213, 255, 0.55);
+        font-size: 0.85rem;
+        letter-spacing: 0.02em;
+      }
+      .trust-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: rgba(124, 58, 237, 0.4);
+      }
+
+      /* ── Divider glow ── */
+      .glow-divider {
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(124, 58, 237, 0.3),
+          rgba(168, 85, 247, 0.2),
+          transparent
+        );
+      }
+
+      /* ── Footer ── */
+      footer a {
+        color: rgba(233, 213, 255, 0.5);
+        transition: color 0.2s;
+      }
+      footer a:hover {
+        color: var(--purple-light);
+      }
+
+      /* ── Fade-in animations ── */
+      .fade-up {
+        opacity: 0;
+        transform: translateY(24px);
+        animation: fadeUp 0.7s ease forwards;
+      }
+      @keyframes fadeUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .delay-1 {
+        animation-delay: 0.1s;
+      }
+      .delay-2 {
+        animation-delay: 0.2s;
+      }
+      .delay-3 {
+        animation-delay: 0.3s;
+      }
+      .delay-4 {
+        animation-delay: 0.4s;
+      }
+      .delay-5 {
+        animation-delay: 0.5s;
+      }
+      .delay-6 {
+        animation-delay: 0.6s;
+      }
+      .delay-7 {
+        animation-delay: 0.7s;
+      }
+
+      /* Responsive image grid */
+      .showcase-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .showcase-grid .wide {
+        grid-column: 1 / -1;
+      }
+
+      @media (max-width: 640px) {
+        .showcase-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Section label */
+      .section-label {
+        font-family: "Space Mono", monospace;
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--purple-glow);
+      }
+
+      .section-title {
+        font-size: clamp(1.8rem, 4vw, 2.5rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="cosmic-bg" aria-hidden="true">
+      <div class="blur-orb blur-orb-1"></div>
+      <div class="blur-orb blur-orb-2"></div>
+      <div class="blur-orb blur-orb-3"></div>
+      <div class="radial-overlay"></div>
+      <div class="dot-grid"></div>
+    </div>
+
+    <div class="content-wrap">
+      <!-- ━━ NAV ━━ -->
+      <nav class="fixed top-0 w-full z-50">
+        <div
+          class="max-w-6xl mx-auto px-6 py-4 grid grid-cols-3 items-center w-full"
+        >
+          <div class="flex items-center gap-3">
+            <div class="nav-logo-wrap">
+              <img src="app-icon.png" alt="Glide" class="nav-logo" />
+            </div>
+            <span class="text-lg font-semibold tracking-tight">Glide</span>
+          </div>
+          <div class="flex justify-center items-center gap-6">
+            <a href="#features" class="nav-link text-sm no-underline"
+              >Features</a
+            >
+            <a href="#privacy" class="nav-link text-sm no-underline">Privacy</a>
+          </div>
+          <div class="flex justify-end">
+            <a
+              href="#download"
+              class="cta-btn text-white text-sm font-medium px-5 py-2.5 rounded-full no-underline"
+            >
+              Download Free
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <!-- ━━ HERO ━━ -->
+      <section class="pt-32 pb-16 px-6">
+        <div class="max-w-4xl mx-auto text-center">
+          <!-- <div class="fade-up delay-1 inline-flex items-center gap-2 hero-badge rounded-full px-4 py-2 mb-8">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--purple-light)">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <span class="text-sm" style="color:var(--purple-light)">Free macOS utility</span>
+      </div> -->
+
+          <h1 class="hero-title fade-up delay-2 mb-6">
+            Swift and effortless window management
+          </h1>
+
+          <p class="hero-sub fade-up delay-3 mx-auto mb-10">
+            Glide is a lightweight utility that makes window management swift
+            and effortless. No bloat, no complexity — just quick control using
+            modifier keys + your mouse.
+          </p>
+
+          <div
+            class="fade-up delay-4 flex flex-wrap items-center justify-center gap-4 mb-6"
+          >
+            <a
+              href="#download"
+              class="cta-btn text-white font-semibold px-8 py-3.5 rounded-full text-base no-underline inline-flex items-center gap-2"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path
+                  d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"
+                />
+              </svg>
+              Download for Mac
+            </a>
+            <a
+              href="#features"
+              class="cta-secondary text-white font-medium px-7 py-3.5 rounded-full text-base no-underline"
+            >
+              See how it works
+            </a>
+          </div>
+
+          <div
+            class="fade-up delay-5 flex items-center justify-center gap-3 flex-wrap"
+          >
+            <span class="trust-item">No subscription</span>
+            <span class="trust-dot"></span>
+            <span class="trust-item">No in-app purchases</span>
+            <span class="trust-dot"></span>
+            <span class="trust-item">No data collection</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ━━ HERO SCREENSHOT ━━ -->
+      <section class="pb-24 px-6">
+        <div class="max-w-4xl mx-auto screenshot-wrap fade-up delay-6">
+          <div class="screenshot-card">
+            <img
+              src="glide-hero.png"
+              alt="Glide — Move and resize windows with your mouse"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      </section>
+
+      <div class="glow-divider max-w-4xl mx-auto"></div>
+
+      <!-- ━━ HOW IT WORKS ━━ -->
+      <section id="features" class="py-24 px-6">
+        <div class="max-w-4xl mx-auto">
+          <div class="text-center mb-16">
+            <span class="section-label mb-3 block">How it works</span>
+            <h2 class="section-title">
+              Three steps to effortless<br />window control
+            </h2>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="step-card p-6">
+              <span class="step-number block mb-4">01</span>
+              <h3 class="text-lg font-semibold mb-2">Hold your keys</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.6); line-height: 1.7"
+              >
+                Press your chosen modifier key combo — like
+                <span class="kbd">Cmd</span> + <span class="kbd">Shift</span> —
+                to activate Glide.
+              </p>
+            </div>
+
+            <div class="step-card p-6">
+              <span class="step-number block mb-4">02</span>
+              <h3 class="text-lg font-semibold mb-2">Glide your window</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.6); line-height: 1.7"
+              >
+                Any window under your cursor will follow — even in the
+                background. No need to hunt for the title bar or even click.
+              </p>
+            </div>
+
+            <div class="step-card p-6">
+              <span class="step-number block mb-4">03</span>
+              <h3 class="text-lg font-semibold mb-2">Resize from anywhere</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.6); line-height: 1.7"
+              >
+                Right-click and drag near any corner or edge to resize — watch
+                your window resize as you go.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ━━ DRAG SCREENSHOT ━━ -->
+      <!-- <section class="pb-24 px-6">
+    <div class="max-w-4xl mx-auto screenshot-wrap">
+      <div class="screenshot-card">
+        <img src="glide-drag.png" alt="Glide in action — Cmd + Shift to move and resize" loading="lazy">
+      </div>
+    </div>
+  </section> -->
+
+      <div class="glow-divider max-w-4xl mx-auto"></div>
+
+      <!-- ━━ FEATURES GRID ━━ -->
+      <section class="py-24 px-6">
+        <div class="max-w-4xl mx-auto">
+          <div class="text-center mb-16">
+            <span class="section-label mb-3 block">Features</span>
+            <h2 class="section-title">The Art of Window Zen</h2>
+            <p
+              class="mt-4 mx-auto"
+              style="
+                color: rgba(233, 213, 255, 0.55);
+                max-width: 480px;
+                line-height: 1.7;
+              "
+            >
+              Most window tools grow into complex managers. Glide stays lean —
+              just the essentials for fast, fluid window control.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div class="feature-card p-6">
+              <div class="feature-icon mb-4">
+                <svg viewBox="0 0 24 24">
+                  <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                </svg>
+              </div>
+              <h3 class="font-semibold mb-1.5">Move from anywhere</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.55); line-height: 1.6"
+              >
+                Hover over any point of a window to move it — no title bar or
+                clicking required.
+              </p>
+            </div>
+
+            <div class="feature-card p-6">
+              <div class="feature-icon mb-4">
+                <svg viewBox="0 0 24 24">
+                  <rect x="2" y="2" width="20" height="20" rx="2" />
+                  <path d="M16 2v20M2 12h20" />
+                </svg>
+              </div>
+              <h3 class="font-semibold mb-1.5">Resize from anywhere</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.55); line-height: 1.6"
+              >
+                Right-click + drag to watch your window resize. Grow or shrink
+                from anywhere, in any direction.
+              </p>
+            </div>
+
+            <div class="feature-card p-6">
+              <div class="feature-icon mb-4">
+                <svg viewBox="0 0 24 24">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="M2 8h20" />
+                  <circle cx="6" cy="6" r="0.5" fill="currentColor" />
+                  <circle cx="9" cy="6" r="0.5" fill="currentColor" />
+                </svg>
+              </div>
+              <h3 class="font-semibold mb-1.5">Works with any window</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.55); line-height: 1.6"
+              >
+                Foreground or background — Glide works across every app on your
+                Mac.
+              </p>
+            </div>
+
+            <div class="feature-card p-6">
+              <div class="feature-icon mb-4">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 20V10M18 20V4M6 20v-4" />
+                </svg>
+              </div>
+              <h3 class="font-semibold mb-1.5">Custom modifier keys</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.55); line-height: 1.6"
+              >
+                Pick any combination of Cmd, Shift, Ctrl, or Alt to trigger
+                Glide.
+              </p>
+            </div>
+
+            <div class="feature-card p-6">
+              <div class="feature-icon mb-4">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
+                  />
+                </svg>
+              </div>
+              <h3 class="font-semibold mb-1.5">Menu bar control</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.55); line-height: 1.6"
+              >
+                Toggle Glide on or off instantly from the macOS menu bar. Always
+                only one click away.
+              </p>
+            </div>
+
+            <div class="feature-card p-6">
+              <div class="feature-icon mb-4">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold mb-1.5">Private by design</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.55); line-height: 1.6"
+              >
+                Zero data collection. No accounts. No analytics. Your windows,
+                your business.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="glow-divider max-w-4xl mx-auto"></div>
+
+      <!-- ━━ QUICK SETTINGS ━━ -->
+      <section class="py-24 px-6">
+        <div class="max-w-4xl mx-auto settings-section">
+          <div>
+            <span class="section-label mb-3 block">Menu bar</span>
+            <h2 class="section-title mb-4">Quick settings</h2>
+            <p
+              class="mb-6"
+              style="
+                color: rgba(233, 213, 255, 0.7);
+                line-height: 1.7;
+                max-width: 480px;
+              "
+            >
+              Access all controls from your menu bar. Enable or disable Glide,
+              customize modifier keys, toggle hover move, and more. Everything
+              is just a click away.
+            </p>
+            <ul class="settings-checklist">
+              <li>
+                <svg
+                  class="check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                Toggle Glide on/off globally
+              </li>
+              <li>
+                <svg
+                  class="check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                Choose modifier keys
+                <span class="mod-keys"
+                  ><span class="mod-key">Alt</span
+                  ><span class="mod-key-plus">+</span
+                  ><span class="mod-key">Cmd</span
+                  ><span class="mod-key-plus">+</span
+                  ><span class="mod-key">Ctrl</span
+                  ><span class="mod-key-plus">+</span
+                  ><span class="mod-key">Shift</span></span
+                >
+              </li>
+              <li>
+                <svg
+                  class="check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                Enable/disable hover move
+              </li>
+              <li>
+                <svg
+                  class="check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                Reset to defaults anytime
+              </li>
+            </ul>
+          </div>
+          <div class="screenshot-wrap">
+            <div class="screenshot-card">
+              <img
+                src="menubar.png"
+                alt="Glide quick settings in the menu bar"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="glow-divider max-w-4xl mx-auto"></div>
+
+      <!-- ━━ ONE-TIME SETUP ━━ -->
+      <section class="py-24 px-6">
+        <div
+          class="max-w-4xl mx-auto settings-section settings-section--onboarding"
+        >
+          <div class="screenshot-wrap">
+            <div class="screenshot-card">
+              <img
+                src="onboarding.png"
+                alt="Glide one-time accessibility setup"
+                class="onboarding-img"
+                loading="lazy"
+              />
+            </div>
+          </div>
+          <div>
+            <span class="section-label mb-3 block">Onboarding</span>
+            <h2 class="section-title mb-4">One-time setup</h2>
+            <p
+              class="mb-6"
+              style="
+                color: rgba(233, 213, 255, 0.7);
+                line-height: 1.7;
+                max-width: 480px;
+              "
+            >
+              Glide needs Accessibility permissions to move windows for you. Our
+              seamless onboarding guides you through System Settings in seconds.
+            </p>
+            <div class="setup-step">
+              <span class="setup-step-num">1</span>
+              <div class="setup-step-content">
+                <h4>Open System Settings</h4>
+                <p>Go to Privacy &amp; Security</p>
+              </div>
+            </div>
+            <div class="setup-step">
+              <span class="setup-step-num">2</span>
+              <div class="setup-step-content">
+                <h4>Select Accessibility</h4>
+                <p>Find Glide in the list</p>
+              </div>
+            </div>
+            <div class="setup-step">
+              <span class="setup-step-num">3</span>
+              <div class="setup-step-content">
+                <h4>Enable Access</h4>
+                <p>Toggle the switch on, then return to Glide</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="glow-divider max-w-4xl mx-auto"></div>
+
+      <!-- ━━ PRIVACY ━━ -->
+      <section id="privacy" class="py-24 px-6">
+        <div class="max-w-4xl mx-auto">
+          <div class="text-center mb-16">
+            <span class="section-label mb-3 block">Privacy</span>
+            <h2 class="section-title">Zero Data Collection</h2>
+            <p
+              class="mx-auto"
+              style="
+                color: rgba(233, 213, 255, 0.7);
+                max-width: 560px;
+                line-height: 1.7;
+              "
+            >
+              Glide uses macOS Accessibility permission to move and resize
+              windows. Glide does not collect personal data.
+            </p>
+          </div>
+
+          <!-- <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div class="feature-card p-6">
+              <div class="feature-icon mb-4">
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
+              <h3 class="font-semibold mb-1.5">No data collected</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.55); line-height: 1.6"
+              >
+                No analytics, tracking, or profiling.
+              </p>
+            </div>
+            <div class="feature-card p-6">
+              <div class="feature-icon mb-4">
+                <svg viewBox="0 0 24 24">
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                  <polyline points="22 4 12 14.01 9 11.01" />
+                </svg>
+              </div>
+              <h3 class="font-semibold mb-1.5">One-time setup</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.55); line-height: 1.6"
+              >
+                Grant Accessibility once during onboarding.
+              </p>
+            </div>
+            <div class="feature-card p-6">
+              <div class="feature-icon mb-4">
+                <svg viewBox="0 0 24 24">
+                  <rect x="2" y="3" width="20" height="14" rx="2" />
+                  <path d="M8 21h8M12 17v4" />
+                </svg>
+              </div>
+              <h3 class="font-semibold mb-1.5">Local behavior</h3>
+              <p
+                class="text-sm"
+                style="color: rgba(233, 213, 255, 0.55); line-height: 1.6"
+              >
+                Settings are stored on your Mac.
+              </p>
+            </div>
+          </div> -->
+        </div>
+      </section>
+
+      <div class="glow-divider max-w-4xl mx-auto"></div>
+
+      <!-- ━━ COMPATIBILITY ━━ -->
+      <section class="py-24 px-6">
+        <div class="max-w-3xl mx-auto text-center">
+          <span class="section-label mb-3 block">Compatibility</span>
+          <h2 class="section-title mb-4">Built for modern macOS</h2>
+          <p
+            class="mb-10 mx-auto"
+            style="
+              color: rgba(233, 213, 255, 0.55);
+              max-width: 440px;
+              line-height: 1.7;
+            "
+          >
+            Native, lightweight, and tested across every recent macOS release
+            since macOS 13 Ventura.
+          </p>
+
+          <div class="flex flex-wrap items-center justify-center gap-3">
+            <span class="compat-pill highlight">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                style="
+                  display: inline;
+                  vertical-align: -2px;
+                  margin-right: 4px;
+                  color: var(--purple-light);
+                "
+              >
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+              Optimized for macOS 26 Tahoe
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <div class="glow-divider max-w-4xl mx-auto"></div>
+
+      <!-- ━━ CTA ━━ -->
+      <section id="download" class="py-24 px-6">
+        <div class="max-w-3xl mx-auto text-center">
+          <div class="mb-6">
+            <img
+              src="app-icon.png"
+              alt="Glide icon"
+              style="
+                width: 72px;
+                height: 72px;
+                border-radius: 16px;
+                margin: 0 auto;
+                display: block;
+                box-shadow: 0 0 40px rgba(124, 58, 237, 0.25);
+              "
+            />
+          </div>
+
+          <h2 class="section-title mb-4">Ready to Glide?</h2>
+          <p
+            class="mb-8 mx-auto"
+            style="
+              color: rgba(233, 213, 255, 0.55);
+              max-width: 420px;
+              line-height: 1.7;
+            "
+          >
+            Download Glide for free. No subscriptions, no in-app purchases, no
+            nonsense.
+          </p>
+
+          <a
+            href="#"
+            class="cta-btn text-white font-semibold px-10 py-4 rounded-full text-lg no-underline inline-flex items-center gap-2.5"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path
+                d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"
+              />
+            </svg>
+            Download for Mac
+          </a>
+
+          <p class="mt-5 text-xs" style="color: rgba(233, 213, 255, 0.35)">
+            Requires macOS 13 or later · Apple Silicon & Intel
+          </p>
+        </div>
+      </section>
+
+      <!-- ━━ FOOTER ━━ -->
+      <footer
+        class="py-10 px-6 border-t"
+        style="border-color: rgba(124, 58, 237, 0.1)"
+      >
+        <div
+          class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-4"
+        >
+          <div
+            class="flex items-center gap-2 flex-1 justify-center sm:justify-start"
+          >
+            <img
+              src="app-icon.png"
+              alt="Glide"
+              style="width: 30px; height: 30px; border-radius: 5px"
+            />
+            <span class="text-sm" style="color: rgba(233, 213, 255, 0.4)"
+              >Glide</span
+            >
+          </div>
+          <p
+            class="text-sm order-first sm:order-none"
+            style="color: rgba(233, 213, 255, 0.4)"
+          >
+            © 2026 Glide. All rights reserved
+          </p>
+          <div
+            class="flex items-center gap-6 text-sm flex-1 justify-center sm:justify-end"
+          >
+            <a href="https://github.com/drluckyspin/glide/issues">Support</a>
+            <a href="https://github.com/drluckyspin/glide">GitHub</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

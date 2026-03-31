@@ -18,7 +18,7 @@
 #   release                 : Create signed and notarized DMG for distribution
 #   sign                    : Codesign and notarize (requires secrets/secrets.env)
 #   check                   : Verify all developer dependencies
-#   bump-version            : Set app version from VERSION file
+#   bump-version            : Sync VERSION into plist and site (download + Vemetric)
 #   run                     : Build and run the app
 #   test                    : Run tests (Debug configuration)
 #
@@ -116,9 +116,9 @@ check_create_dmg:
 	fi
 
 # -----------------------------------------------------------------------------------------------------------
-# Bump version (read VERSION file, update Glide-Info.plist)
+# Bump version (read VERSION file, update Glide-Info.plist and site/index.html)
 # -----------------------------------------------------------------------------------------------------------
-bump-version: ## Set app version from VERSION file
+bump-version: ## Sync VERSION into plist and site (download URL + data-vmtrc-version)
 	@if [ ! -f "$(MAKEFILE_DIR)VERSION" ]; then \
 		source $(MAKEFILE_DIR)scripts/log.bash && log_error "VERSION file not found. Create it with the desired version (e.g. 1.2.0)"; \
 		exit 1; \
@@ -133,7 +133,13 @@ bump-version: ## Set app version from VERSION file
 	$(LOGGER) log_info "Setting version to $$V (from VERSION file)"; \
 	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $$V" Glide/Glide-Info.plist; \
 	/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $$V" Glide/Glide-Info.plist; \
-	$(LOGGER) log_success "Updated Glide-Info.plist to $$V"
+	$(LOGGER) log_success "Updated Glide-Info.plist to $$V"; \
+	SITE="$(MAKEFILE_DIR)site/index.html"; \
+	if [ -f "$$SITE" ]; then \
+		sed -i '' -e "s|https://github.com/drluckyspin/glide/releases/download/v[^/]*/Glide-[^/]*\\.zip|https://github.com/drluckyspin/glide/releases/download/v$$V/Glide-$$V.zip|g" "$$SITE"; \
+		sed -i '' -e "s|data-vmtrc-version=\"[^\"]*\"|data-vmtrc-version=\"$$V\"|g" "$$SITE"; \
+		$(LOGGER) log_success "Updated site/index.html (GitHub download + data-vmtrc-version) to $$V"; \
+	fi
 
 # -----------------------------------------------------------------------------------------------------------
 # Build (Release configuration)

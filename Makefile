@@ -14,6 +14,7 @@
 #   clean                   : Clean build artifacts
 #   install                 : Build and install to /Applications
 #   open                    : Open the Xcode project
+#   site                    : Open the landing page (site/index.html) in the browser
 #   package                 : Create DMG for local testing (version: dev)
 #   release                 : Create signed and notarized DMG for distribution
 #   sign                    : Codesign and notarize (requires secrets/secrets.env)
@@ -54,7 +55,7 @@ DIST_DIR        = $(BUILD_OUTPUT_DIR)/dist
 DMG_VOLICON     = $(DIST_DIR)/Glide.app/Contents/Resources/AppIcon.icns
 
 # All Phony targets
-.PHONY: help build build-debug run run-onboarding install test clean open package release release-prep sign check check_xcode check_xcode_first_launch check_brew check_create_dmg bump-version
+.PHONY: help build build-debug run run-onboarding install test clean open site package release release-prep sign check check_xcode check_xcode_first_launch check_brew check_create_dmg bump-version
 
 
 # -----------------------------------------------------------------------------------------------------------
@@ -201,6 +202,9 @@ install: build ## Build and install to ~/Applications
 # -----------------------------------------------------------------------------------------------------------
 open: ## Open the Xcode project
 	open $(PROJECT)
+
+site: ## Open the landing page (site/index.html) in the default browser
+	open "$(MAKEFILE_DIR)site/index.html"
 
 # -----------------------------------------------------------------------------------------------------------
 # Package (Create DMG for local testing (version: dev))

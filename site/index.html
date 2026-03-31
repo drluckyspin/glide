@@ -1,9 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" id="top">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Glide — Move & Resize Windows Effortlessly</title>
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link
       href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css"
       rel="stylesheet"
@@ -154,6 +158,16 @@
           0 0 20px rgba(124, 58, 237, 0.35),
           0 0 40px rgba(124, 58, 237, 0.15);
         transition: transform 0.25s ease;
+      }
+      .nav-brand {
+        color: var(--white-soft);
+        transition: color 0.2s ease;
+      }
+      .nav-brand:hover {
+        color: var(--purple-light);
+      }
+      .nav-brand:hover .nav-logo {
+        transform: scale(1.04);
       }
 
       /* ── Hero ── */
@@ -496,6 +510,13 @@
       footer a:hover {
         color: var(--purple-light);
       }
+      footer .footer-brand span {
+        color: rgba(233, 213, 255, 0.4);
+        transition: color 0.2s;
+      }
+      footer .footer-brand:hover span {
+        color: var(--purple-light);
+      }
 
       /* ── Fade-in animations ── */
       .fade-up {
@@ -582,12 +603,16 @@
         <div
           class="max-w-6xl mx-auto px-6 py-4 grid grid-cols-3 items-center w-full"
         >
-          <div class="flex items-center gap-3">
+          <a
+            href="#top"
+            class="nav-brand flex items-center gap-3 no-underline"
+            aria-label="Glide — home"
+          >
             <div class="nav-logo-wrap">
-              <img src="app-icon.png" alt="Glide" class="nav-logo" />
+              <img src="app-icon.png" alt="" class="nav-logo" />
             </div>
             <span class="text-lg font-semibold tracking-tight">Glide</span>
-          </div>
+          </a>
           <div class="flex justify-center items-center gap-6">
             <a href="#features" class="nav-link text-sm no-underline"
               >Features</a
@@ -1171,6 +1196,9 @@
 
           <a
             href="https://github.com/drluckyspin/glide/releases/download/v1.2.3/Glide-1.2.3.zip"
+            data-vmtrc="GlideDownload"
+            data-vmtrc-version="1.2.3"
+            data-vmtrc-platform="mac"
             class="cta-btn text-white font-semibold px-10 py-4 rounded-full text-lg no-underline inline-flex items-center gap-2.5"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -1195,18 +1223,18 @@
         <div
           class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-4"
         >
-          <div
-            class="flex items-center gap-2 flex-1 justify-center sm:justify-start"
+          <a
+            href="#top"
+            class="footer-brand flex items-center gap-2 flex-1 justify-center sm:justify-start no-underline"
+            aria-label="Glide — home"
           >
             <img
               src="app-icon.png"
-              alt="Glide"
+              alt=""
               style="width: 30px; height: 30px; border-radius: 5px"
             />
-            <span class="text-sm" style="color: rgba(233, 213, 255, 0.4)"
-              >Glide</span
-            >
-          </div>
+            <span class="text-sm">Glide</span>
+          </a>
           <p
             class="text-sm order-first sm:order-none"
             style="color: rgba(233, 213, 255, 0.4)"

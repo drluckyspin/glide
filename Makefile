@@ -15,7 +15,7 @@
 #   install                 : Build and install to /Applications
 #   open                    : Open the Xcode project
 #   site                    : Open the landing page (site/index.html) in the browser
-#   package                 : Create DMG for local testing (version: dev)
+#   dev-package             : Create unsigned DMG for local testing (version: dev)
 #   release                 : Create signed and notarized DMG for distribution
 #   sign                    : Codesign and notarize (requires secrets/secrets.env)
 #   check                   : Verify all developer dependencies
@@ -54,8 +54,12 @@ DIST_DIR        = $(BUILD_OUTPUT_DIR)/dist
 # To use docs/app-icon.png instead, convert it first: add docs/app-icon.icns and set DMG_VOLICON to that path.
 DMG_VOLICON     = $(DIST_DIR)/Glide.app/Contents/Resources/AppIcon.icns
 
+# Local signing identity used by `make sign` / `make release`. Defaults to the Developer ID
+# Application identity already in your login keychain (override on the command line if needed).
+SIGN_IDENTITY   ?= Developer ID Application
+
 # All Phony targets
-.PHONY: help build build-debug run run-onboarding install test clean open site package release release-prep sign check check_xcode check_xcode_first_launch check_brew check_create_dmg bump-version
+.PHONY: help build build-debug run run-onboarding install test clean open site dev-package release release-prep sign check check_xcode check_xcode_first_launch check_brew check_create_dmg bump-version
 
 
 # -----------------------------------------------------------------------------------------------------------
@@ -207,14 +211,14 @@ site: ## Open the landing page (site/index.html) in the default browser
 	open "$(MAKEFILE_DIR)site/index.html"
 
 # -----------------------------------------------------------------------------------------------------------
-# Package (Create DMG for local testing (version: dev))
+# Dev package (Create unsigned DMG for local testing (version: dev))
 # -----------------------------------------------------------------------------------------------------------
-package: PACKAGE_VERSION = $(VERSION_DEV)
-package: ## Create DMG for local testing (version: dev)
+dev-package: PACKAGE_VERSION = $(VERSION_DEV)
+dev-package: ## Create unsigned DMG for local testing (version: dev)
 release: sign ## Create signed and notarized DMG for distribution
 sign: release-prep ## Codesign, notarize app and DMG (requires secrets/secrets.env)
 
-package:
+dev-package:
 	@$(LOGGER) log_separator
 	@$(LOGGER) log_info "Creating DMG for Glide $(PACKAGE_VERSION)..."
 	@set -e; \
@@ -282,6 +286,10 @@ release-prep:
 # -----------------------------------------------------------------------------------------------------------
 # Sign (codesign, notarize app, create DMG, notarize DMG)
 # -----------------------------------------------------------------------------------------------------------
+# Local signing. Uses the Developer ID identity already in your login keychain and notarizes
+# straight from secrets/secrets.env. It does NOT create an ephemeral keychain or change your
+# default/search-list keychains, so it never disturbs your session. (CI signs separately and
+# inline in .github/workflows/release.yaml; this Makefile target is local-only.)
 sign:
 	@$(LOGGER) log_separator
 	@$(LOGGER) log_info "Signing and notarizing Glide $(VERSION_RELEASE)..."
@@ -289,61 +297,40 @@ sign:
 		source $(MAKEFILE_DIR)scripts/log.bash && log_error "secrets/secrets.env not found. Add your Apple Developer secrets."; \
 		exit 1; \
 	fi
+	@if ! security find-identity -v -p codesigning | grep -q "$(SIGN_IDENTITY)"; then \
+		source $(MAKEFILE_DIR)scripts/log.bash && log_error "No '$(SIGN_IDENTITY)' identity in your login keychain. Import it once (double-click secrets/DevIDCertificates.p12) and retry."; \
+		exit 1; \
+	fi
 	@set -euo pipefail; \
 	set -a; \
 	source "$(MAKEFILE_DIR)secrets/secrets.env"; \
 	set +a; \
 	TEMP_DIR="$${TMPDIR:-/tmp}"; \
-	KEYCHAIN_PATH="$$TEMP_DIR/glide-sign.keychain-db"; \
-	KEYCHAIN_PASSWORD=""; \
 	APP="$(DIST_DIR)/Glide.app"; \
 	VERSION="$(VERSION_RELEASE)"; \
 	DMG="Glide-$$VERSION.dmg"; \
+	P8="$$TEMP_DIR/glide-asc-AuthKey.p8"; \
+	ZIP="$$TEMP_DIR/Glide.zip"; \
 	icon_tmp=""; rsrc_tmp=""; \
-	ORIG_KEYCHAINS=$$(security list-keychains -d user 2>/dev/null | tr '\n' ' '); \
-	ORIG_DEFAULT=$$(security default-keychain -d user 2>/dev/null || true); \
 	cleanup() { \
 		err=$$?; \
-		security list-keychains -d user -s $$ORIG_KEYCHAINS 2>/dev/null || true; \
-		[ -n "$$ORIG_DEFAULT" ] && security default-keychain -d user -s "$$ORIG_DEFAULT" 2>/dev/null || true; \
-		security delete-keychain "$$KEYCHAIN_PATH" 2>/dev/null || true; \
-		rm -f "$$icon_tmp" "$$rsrc_tmp" 2>/dev/null || true; \
+		rm -f "$$P8" "$$ZIP" "$$icon_tmp" "$$rsrc_tmp" 2>/dev/null || true; \
 		if [ $$err -ne 0 ]; then \
-			source $(MAKEFILE_DIR)scripts/log.bash && log_warning "Cleaning up after failure..."; \
-			rm -f rw.*.$$DMG; \
+			source $(MAKEFILE_DIR)scripts/log.bash && log_warning "Cleaning up interstitial artifacts after failure..."; \
+			rm -f rw.*."$$DMG"; \
 		fi; \
 		exit $$err; \
 	}; \
 	trap cleanup EXIT; \
-	source $(MAKEFILE_DIR)scripts/log.bash && log_info "Setting up signing keychain..."; \
-	security create-keychain -p "$$KEYCHAIN_PASSWORD" "$$KEYCHAIN_PATH"; \
-	security set-keychain-settings -t 3600 -u "$$KEYCHAIN_PATH"; \
-	security unlock-keychain -p "$$KEYCHAIN_PASSWORD" "$$KEYCHAIN_PATH"; \
-	security list-keychains -d user -s "$$KEYCHAIN_PATH" $$ORIG_KEYCHAINS; \
-	security default-keychain -s "$$KEYCHAIN_PATH"; \
-	echo "$$APPLE_SIGNING_P12" | base64 --decode > "$$TEMP_DIR/signing.p12"; \
-	security import "$$TEMP_DIR/signing.p12" -k "$$KEYCHAIN_PATH" -P "$$APPLE_SIGNING_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security; \
-	for cert in DeveloperIDG2CA DeveloperIDCA; do \
-		curl -sL "https://www.apple.com/certificateauthority/$${cert}.cer" -o "$$TEMP_DIR/$${cert}.cer" && \
-		security import "$$TEMP_DIR/$${cert}.cer" -k "$$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security 2>/dev/null || true; \
-	done; \
-	security set-key-partition-list -S apple-tool:,apple: -s -k "$$KEYCHAIN_PASSWORD" "$$KEYCHAIN_PATH"; \
-	FIND_OUT=$$(security find-identity -p codesigning "$$KEYCHAIN_PATH" 2>/dev/null); \
-	SIGN_ID=$$(echo "$$FIND_OUT" | grep -E '^[[:space:]]+[0-9]+\) [A-Fa-f0-9]{40}' | head -n 1 | sed -E 's/^[[:space:]]*[0-9]+\) ([A-Fa-f0-9]{40}) .*/\1/' | tr -d '\n' || true); \
-	if [ -z "$$SIGN_ID" ]; then \
-		source $(MAKEFILE_DIR)scripts/log.bash && log_error "No codesigning identity found in keychain"; \
-		echo "$$FIND_OUT"; exit 1; \
-	fi; \
-	source $(MAKEFILE_DIR)scripts/log.bash && log_info "Codesigning app (identity $$SIGN_ID)..."; \
-	codesign --force --options runtime --timestamp --sign "$$SIGN_ID" --keychain "$$KEYCHAIN_PATH" "$$APP"; \
+	echo "$$ASC_PRIVATE_KEY_B64" | base64 --decode > "$$P8"; \
+	chmod 600 "$$P8"; \
+	source $(MAKEFILE_DIR)scripts/log.bash && log_info "Codesigning app (identity: $(SIGN_IDENTITY))..."; \
+	codesign --force --options runtime --timestamp --sign "$(SIGN_IDENTITY)" "$$APP"; \
 	codesign -vvv --deep --strict "$$APP"; \
 	source $(MAKEFILE_DIR)scripts/log.bash && log_info "Notarizing app..."; \
-	mkdir -p "$$TEMP_DIR/asc"; \
-	echo "$$ASC_PRIVATE_KEY_B64" | base64 --decode > "$$TEMP_DIR/asc/AuthKey.p8"; \
-	chmod 600 "$$TEMP_DIR/asc/AuthKey.p8"; \
-	ditto -c -k --sequesterRsrc --keepParent "$$APP" "$$TEMP_DIR/Glide.zip"; \
-	xcrun notarytool submit "$$TEMP_DIR/Glide.zip" \
-		--key "$$TEMP_DIR/asc/AuthKey.p8" --key-id "$$ASC_KEY_ID" --issuer "$$ASC_ISSUER_ID" --wait; \
+	ditto -c -k --sequesterRsrc --keepParent "$$APP" "$$ZIP"; \
+	xcrun notarytool submit "$$ZIP" \
+		--key "$$P8" --key-id "$$ASC_KEY_ID" --issuer "$$ASC_ISSUER_ID" --wait; \
 	xcrun stapler staple "$$APP"; \
 	xcrun stapler validate "$$APP"; \
 	source $(MAKEFILE_DIR)scripts/log.bash && log_info "Creating DMG..."; \
@@ -369,10 +356,10 @@ sign:
 	SetFile -a C "$$DMG"; \
 	source $(MAKEFILE_DIR)scripts/log.bash && log_info "Notarizing DMG..."; \
 	xcrun notarytool submit "$$DMG" \
-		--key "$$TEMP_DIR/asc/AuthKey.p8" --key-id "$$ASC_KEY_ID" --issuer "$$ASC_ISSUER_ID" --wait; \
+		--key "$$P8" --key-id "$$ASC_KEY_ID" --issuer "$$ASC_ISSUER_ID" --wait; \
 	xcrun stapler staple "$$DMG"; \
 	xcrun stapler validate "$$DMG"; \
-	$(LOGGER) log_success "Created signed and notarized $$DMG"
+	$(LOGGER) log_success "Created signed and notarized $$DMG (login keychain, no keychain switching)"
 
 # -----------------------------------------------------------------------------------------------------------
 # Run (Build and run the app)

@@ -48,15 +48,11 @@ struct OnboardingView: View {
                     .foregroundStyle(.white)
                     .padding(.bottom, 6)
 
-                // Subtitle — aligned with assistive primary purpose (App Store accessibility API guidelines)
-                Text(
-                    "Glide is assistive software for macOS. It helps you move and resize windows when title bars and edges are hard to use—because of limited dexterity, pain, fatigue, tremor, or other motor difficulty.\n\nGrant Accessibility below so Glide can provide that assisted window control."
-                )
+                // Subtitle
+                Text("Move and resize windows effortlessly with your mouse.")
                     .font(.system(size: 13))
                     .foregroundStyle(.white.opacity(0.85))
                     .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 8)
                     .padding(.bottom, 22)
 
                 // Permission steps

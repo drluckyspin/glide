@@ -114,12 +114,10 @@ struct StatusMenuView: View {
                 .foregroundStyle(.white.opacity(0.9))
             }
             .padding(16)
-            .background(cardBackground)
-            .clipShape(BottomRoundedRectangle(radius: 14))
-            .overlay(
-                BottomRoundedRectangle(radius: 14)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
-            )
+            .compositingGroup()
+            .background(menuCardShape.fill(Color(red: 0.18, green: 0.16, blue: 0.24)))
+            .clipShape(menuCardShape)
+            .overlay(menuCardShape.stroke(Color.white.opacity(0.08), lineWidth: 1))
             .padding(6)
         }
         .frame(width: 220)
@@ -199,32 +197,14 @@ struct StatusMenuView: View {
         )
     }
 
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 14)
-            .fill(Color(red: 0.18, green: 0.16, blue: 0.24))
+    private var menuCardShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(cornerRadii: RectangleCornerRadii(
+            topLeading: 0,
+            bottomLeading: 14,
+            bottomTrailing: 14,
+            topTrailing: 0
+        ))
     }
 
     // headerGlow removed; icon glow is handled inside the header ZStack.
-}
-
-struct BottomRoundedRectangle: Shape {
-    var radius: CGFloat
-
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - radius))
-        path.addQuadCurve(
-            to: CGPoint(x: rect.maxX - radius, y: rect.maxY),
-            control: CGPoint(x: rect.maxX, y: rect.maxY)
-        )
-        path.addLine(to: CGPoint(x: rect.minX + radius, y: rect.maxY))
-        path.addQuadCurve(
-            to: CGPoint(x: rect.minX, y: rect.maxY - radius),
-            control: CGPoint(x: rect.minX, y: rect.maxY)
-        )
-        path.closeSubpath()
-        return path
-    }
 }

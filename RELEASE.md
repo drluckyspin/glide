@@ -115,6 +115,23 @@ when users download and extract, they get the DMG with the icon intact.
 - **File**: `Glide-{version}.zip` (not the raw DMG, so the icon survives download)
 - **Release notes**: Auto-generated
 
+### 14. Update site download link
+
+The landing page download button lives in `site/index.html`. It must point at the new GitHub
+release **after** the release zip is published — otherwise visitors get a 404.
+
+1. **Before tagging**: set `VERSION` and run `make bump-version`. This syncs the version into
+   `Glide/Glide-Info.plist` and rewrites the download URL and `data-vmtrc-version` in
+   `site/index.html` to:
+   `https://github.com/drluckyspin/glide/releases/download/v{version}/Glide-{version}.zip`
+2. **After the GitHub release exists**: open the site locally (`make site`) and confirm the
+   Download button resolves to the new `.zip` asset.
+3. **Deploy the site** so the public landing page (e.g. glideapp.app) serves the updated
+   `site/index.html`.
+
+> Do not skip this step — bumping the app version alone does not update what users download from
+> the website until `site/index.html` is committed and deployed.
+
 ---
 
 ## Local Release (Makefile)

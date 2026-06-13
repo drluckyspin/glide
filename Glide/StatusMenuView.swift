@@ -199,13 +199,8 @@ struct StatusMenuView: View {
         )
     }
 
-    private var menuCardShape: UnevenRoundedRectangle {
-        UnevenRoundedRectangle(cornerRadii: RectangleCornerRadii(
-            topLeading: 0,
-            bottomLeading: 14,
-            bottomTrailing: 14,
-            topTrailing: 0
-        ))
+    private var menuCardShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 14)
     }
 
     // headerGlow removed; icon glow is handled inside the header ZStack.

@@ -3,6 +3,8 @@ import SwiftUI
 
 final class OnboardingWindowController: NSWindowController {
 
+    private static let minWindowWidth: CGFloat = 430
+
     convenience init(isTranslocated: Bool, onOpenSettings: @escaping () -> Void, onQuit: @escaping () -> Void, debugText: String?) {
         let hostingController = NSHostingController(
             rootView: OnboardingView(
@@ -13,9 +15,13 @@ final class OnboardingWindowController: NSWindowController {
             )
         )
 
-        let windowHeight: CGFloat = isTranslocated ? 540 : 480
+        let fittingHeight = hostingController.sizeThatFits(
+            in: NSSize(width: Self.minWindowWidth, height: CGFloat.greatestFiniteMagnitude)
+        ).height
+        let windowHeight = ceil(max(fittingHeight, 480))
+
         let window = BorderlessKeyWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 420, height: windowHeight),
+            contentRect: NSRect(x: 0, y: 0, width: Self.minWindowWidth, height: windowHeight),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -25,9 +31,6 @@ final class OnboardingWindowController: NSWindowController {
         window.hasShadow = true
         window.isMovableByWindowBackground = true
         window.contentViewController = hostingController
-        window.contentView?.wantsLayer = true
-        window.contentView?.layer?.cornerRadius = 22
-        window.contentView?.layer?.masksToBounds = true
         window.center()
 
         self.init(window: window)

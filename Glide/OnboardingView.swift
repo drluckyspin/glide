@@ -126,10 +126,9 @@ struct OnboardingView: View {
                 .padding(.horizontal, 28)
                 .padding(.bottom, 26)
             }
-//            .background(cardBackground)
-            .padding(18)
         }
-        .frame(minWidth: 430, minHeight: 500)
+        .clipShape(RoundedRectangle(cornerRadius: 22))
+        .frame(minWidth: 430)
     }
 
     private func stepRow(number: Int, icon: String, title: String, description: String) -> some View {

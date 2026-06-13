@@ -459,11 +459,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             // Refresh UI state from persisted prefs each time before showing.
             statusMenuViewModel?.syncFromPreferences()
-            // Anchor just below the status-bar icon.
-            let anchorRect = NSRect(x: 0, y: button.bounds.height - 1, width: button.bounds.width, height: 1)
-            statusPopover.show(relativeTo: anchorRect, of: button, preferredEdge: .maxY)
+            statusPopover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            // Status bar windows report odd coordinates to NSPopover; align manually.
+            DispatchQueue.main.async { [weak self] in
+                self?.alignStatusPopover(to: button)
+            }
             installClickMonitors()
         }
+    }
+
+    /// Places the popover flush below the menu bar, centered on the status item.
+    private func alignStatusPopover(to button: NSStatusBarButton) {
+        guard let popoverWindow = statusPopover.contentViewController?.view.window,
+              let buttonWindow = button.window,
+              let screen = buttonWindow.screen ?? NSScreen.main else { return }
+
+        let buttonOnScreen = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
+        var frame = popoverWindow.frame
+
+        // visibleFrame.maxY is the screen-Y of the menu bar's bottom edge.
+        let menuBarBottom = screen.visibleFrame.maxY
+        frame.origin.y = menuBarBottom - frame.height
+        frame.origin.x = buttonOnScreen.midX - frame.width / 2
+
+        let visible = screen.visibleFrame
+        frame.origin.x = min(max(frame.origin.x, visible.minX + 4), visible.maxX - frame.width - 4)
+
+        popoverWindow.setFrame(frame, display: true)
     }
 
     private func installClickMonitors() {

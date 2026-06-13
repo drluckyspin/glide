@@ -81,7 +81,7 @@ struct OnboardingView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 28)
 
-                Spacer()
+                Spacer(minLength: 20)
 
                 // Debug line for troubleshooting accessibility state.
                 // if let debugText {

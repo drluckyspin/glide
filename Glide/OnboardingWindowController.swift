@@ -15,10 +15,8 @@ final class OnboardingWindowController: NSWindowController {
             )
         )
 
-        let fittingHeight = hostingController.sizeThatFits(
-            in: NSSize(width: Self.minWindowWidth, height: CGFloat.greatestFiniteMagnitude)
-        ).height
-        let windowHeight = ceil(max(fittingHeight, 480))
+        // Fixed height — sizeThatFits returns infinity when the view contains a flexible Spacer().
+        let windowHeight: CGFloat = isTranslocated ? 560 : 520
 
         let window = BorderlessKeyWindow(
             contentRect: NSRect(x: 0, y: 0, width: Self.minWindowWidth, height: windowHeight),

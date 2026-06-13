@@ -1,6 +1,7 @@
 # Glide Release Guide
 
-This document describes the release process used by `.github/workflows/release.yaml`. Use it as a reference if you forget the steps or need to set up secrets.
+This document describes the release process used by `.github/workflows/release.yaml`. Use it as a reference if you
+forget the steps or need to set up secrets.
 
 ## Triggers
 
@@ -9,14 +10,14 @@ This document describes the release process used by `.github/workflows/release.y
 
 ## Required Secrets (GitHub Repository Settings → Secrets and variables → Actions)
 
-| Secret | Description | How to obtain |
-|--------|-------------|---------------|
-| `APPLE_SIGNING_P12` | Base64-encoded Developer ID Application certificate (.p12) | Export from Keychain Access, then `base64 -i YourCert.p12 \| pbcopy` |
-| `APPLE_SIGNING_P12_PASSWORD` | Password for the .p12 file | Set when exporting the .p12 |
-| `ASC_KEY_ID` | App Store Connect API key ID (10 chars) | [App Store Connect → Users and Access → Keys](https://appstoreconnect.apple.com/access/api) |
-| `ASC_ISSUER_ID` | App Store Connect issuer ID (UUID) | Same page as ASC_KEY_ID |
-| `ASC_PRIVATE_KEY_B64` | Base64-encoded .p8 private key | Download .p8 when creating the key, then `base64 -i AuthKey_XXX.p8 \| pbcopy` |
-| `GITHUB_TOKEN` | Auto-provided by GitHub Actions | No setup needed |
+| Secret                       | Description                                                | How to obtain                                                                               |
+| ---------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `APPLE_SIGNING_P12`          | Base64-encoded Developer ID Application certificate (.p12) | Export from Keychain Access, then `base64 -i YourCert.p12 \| pbcopy`                        |
+| `APPLE_SIGNING_P12_PASSWORD` | Password for the .p12 file                                 | Set when exporting the .p12                                                                 |
+| `ASC_KEY_ID`                 | App Store Connect API key ID (10 chars)                    | [App Store Connect → Users and Access → Keys](https://appstoreconnect.apple.com/access/api) |
+| `ASC_ISSUER_ID`              | App Store Connect issuer ID (UUID)                         | Same page as ASC_KEY_ID                                                                     |
+| `ASC_PRIVATE_KEY_B64`        | Base64-encoded .p8 private key                             | Download .p8 when creating the key, then `base64 -i AuthKey_XXX.p8 \| pbcopy`               |
+| `GITHUB_TOKEN`               | Auto-provided by GitHub Actions                            | No setup needed                                                                             |
 
 ---
 
@@ -73,7 +74,8 @@ Decode `ASC_PRIVATE_KEY_B64` to `AuthKey.p8`, chmod 600. Used by `notarytool` fo
 ### 8. Notarize App (zip + staple)
 
 1. **Zip the app**: `ditto -c -k --sequesterRsrc --keepParent Glide.app Glide.zip`
-2. **Submit to Apple**: `xcrun notarytool submit Glide.zip --key AuthKey.p8 --key-id <ASC_KEY_ID> --issuer <ASC_ISSUER_ID> --wait`
+2. **Submit to Apple**:
+   `xcrun notarytool submit Glide.zip --key AuthKey.p8 --key-id <ASC_KEY_ID> --issuer <ASC_ISSUER_ID> --wait`
 3. **Staple** the notarization ticket to the app: `xcrun stapler staple Glide.app`
 4. **Validate**: `xcrun stapler validate Glide.app`
 
@@ -85,7 +87,7 @@ Notarizing the app first gives fast feedback if something is wrong before buildi
 2. **Create DMG** with `create-dmg`:
    - Volume name: "Glide {version}"
    - Volume icon from `AppIcon.icns`
-   - Window 600×400, app icon at (175,120), drop link at (425,120)
+   - Window position (200,120), size 600×400, icon size 100, app icon at (175,120), drop link at (425,120)
 3. **Embed custom icon on DMG file** (so it shows in Finder when unmounted):
    - `sips -i` on the .icns
    - `DeRez -only icns` to extract resource
@@ -100,7 +102,8 @@ Same as app: submit DMG to notarytool, wait, staple, validate.
 
 `ditto -c -k --sequesterRsrc Glide-{version}.dmg Glide-{version}.zip`
 
-**Why zip?** GitHub uploads strip resource forks. The DMG's custom icon lives in a resource fork. Zipping preserves it; when users download and extract, they get the DMG with the icon intact.
+**Why zip?** GitHub uploads strip resource forks. The DMG's custom icon lives in a resource fork. Zipping preserves it;
+when users download and extract, they get the DMG with the icon intact.
 
 ### 12. Verify Gatekeeper (optional)
 
@@ -116,12 +119,56 @@ Same as app: submit DMG to notarytool, wait, staple, validate.
 
 ## Local Release (Makefile)
 
-For local signing and notarization, use `make release` or `make sign`. Requires `secrets/secrets.env` with the same variables as the table above. Run `make bump-version` first to sync `VERSION` into the plist.
+For local signing and notarization, use `make release` (or `make sign`). The version comes from
+`CFBundleShortVersionString` in `Glide/Glide-Info.plist`, so run `make bump-version` first to sync the `VERSION` file
+into the plist.
+
+```bash
+echo "1.2.5" > VERSION   # set the version you want
+make bump-version        # sync VERSION → plist + site download URL
+make release             # archive → codesign → notarize app → DMG → notarize DMG
+```
+
+Output is a signed, notarized, stapled `Glide-<version>.dmg` in the repo root. Local release does **not** create a
+GitHub release or the `.zip` wrapper — those are CI-only steps (see above). Upload the DMG manually, or push a `v*` tag
+to let the workflow build and publish its own copy.
+
+### How local signing differs from CI
+
+Unlike the GitHub Actions workflow, `make release` does **not** create an ephemeral keychain or change your
+default/search-list keychains. It signs with the Developer ID Application identity already in your **login keychain**
+and notarizes straight from `secrets/secrets.env`. This avoids disturbing your macOS session (no password prompts in
+other apps, nothing to restore if a run is interrupted).
+
+Requirements:
+
+- `secrets/secrets.env` must exist with `ASC_KEY_ID`, `ASC_ISSUER_ID`, and `ASC_PRIVATE_KEY_B64` (used for
+  notarization).
+- Your Developer ID Application certificate must be installed in your login keychain.
+
+> **Note:** Local signing uses the Developer ID Application certificate in your login keychain. If it isn't installed,
+> `make release` fails fast with a clear message — import it once by double-clicking `secrets/DevIDCertificates.p12`,
+> then retry.
+>
+> By default the target signs with the identity named `Developer ID Application`. If your keychain has more than one
+> such identity (or you want to pin a specific one), override it with the full identity name:
+>
+> ```bash
+> # List available identities:
+> security find-identity -v -p codesigning
+>
+> # Then pass the one you want:
+> make release SIGN_IDENTITY="Developer ID Application: <Your Name> (<TEAMID>)"
+> ```
 
 ---
 
 ## Apple Developer Prerequisites
 
-1. **Developer ID Application certificate**: Create in [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/certificates/list). Export as .p12.
-2. **App Store Connect API key**: Create in [Users and Access → Keys](https://appstoreconnect.apple.com/access/api). Download the .p8 file once (it can't be re-downloaded).
-3. **Notarization**: Requires an Apple Developer Program membership. Notarytool uses the App Store Connect API key for authentication.
+1. **Developer ID Application certificate**: Create in
+   [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/certificates/list). Export as
+   .p12.
+2. **App Store Connect API key**: Create in [Users and Access → Keys](https://appstoreconnect.apple.com/access/api).
+   Download the .p8 file once (it can't be re-downloaded).
+3. **Notarization**: Requires an Apple Developer Program membership. Notarytool uses the App Store Connect API key for
+   authentication.

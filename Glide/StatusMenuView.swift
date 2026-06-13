@@ -94,7 +94,7 @@ struct StatusMenuView: View {
                 Divider()
                     .background(Color.white.opacity(0.2))
 
-                toggleRow(title: "Drag move", isOn: model.useMouseMove, isEnabled: !model.isDisabled) {
+                toggleRow(title: "Window Glide", isOn: model.useMouseMove, isEnabled: !model.isDisabled) {
                     model.toggleMouseMove()
                 }
 
@@ -107,7 +107,7 @@ struct StatusMenuView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(.white.opacity(0.9))
 
-                Button("Exit") {
+                Button("Quit") {
                     onQuit()
                 }
                 .buttonStyle(.plain)
@@ -126,11 +126,22 @@ struct StatusMenuView: View {
         .fixedSize()
     }
 
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+    }
+
     private var header: some View {
         HStack {
-            Text("Glide")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white)
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                Text("Glide")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                if !appVersion.isEmpty {
+                    Text("v\(appVersion)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
+            }
             Spacer()
             ZStack {
                 RoundedRectangle(cornerRadius: 6)

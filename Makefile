@@ -20,8 +20,9 @@
 #   sign                    : Codesign and notarize (requires secrets/secrets.env)
 #   check                   : Verify all developer dependencies
 #   bump-version            : Sync VERSION into plist and site (download + Vemetric)
-#   run                     : Build and run the app
-#   test                    : Run tests (Debug configuration)
+#   run                     : Build and run the app (Release)
+#   run-debug               : Build and run the app (Debug, no provisioning profile)
+#   run-onboarding          : Build (Debug) and run with onboarding dialog
 #
 # -----------------------------------------------------------------------------------------------------------
 
@@ -55,7 +56,7 @@ DIST_DIR        = $(BUILD_OUTPUT_DIR)/dist
 DMG_VOLICON     = $(DIST_DIR)/Glide.app/Contents/Resources/AppIcon.icns
 
 # All Phony targets
-.PHONY: help build build-debug run run-onboarding install test clean open site package release release-prep sign check check_xcode check_xcode_first_launch check_brew check_create_dmg bump-version
+.PHONY: help build build-debug run run-debug run-onboarding install test clean open site package release release-prep sign check check_xcode check_xcode_first_launch check_brew check_create_dmg bump-version
 
 
 # -----------------------------------------------------------------------------------------------------------
@@ -377,15 +378,20 @@ sign:
 # -----------------------------------------------------------------------------------------------------------
 # Run (Build and run the app)
 # -----------------------------------------------------------------------------------------------------------
-run: build ## Build and run the app
+run: build ## Build and run the app (Release)
 	@$(LOGGER) log_separator
 	@$(LOGGER) log_info "Running Glide"
 	open "$(BUILD_OUTPUT_DIR)/Build/Products/$(CONFIG)/Glide.app"
 
-run-onboarding: build ## Build and run Glide with onboarding dialog (for testing banner UI)
+run-debug: build-debug ## Build and run the app (Debug, for local testing)
 	@$(LOGGER) log_separator
-	@$(LOGGER) log_info "Running Glide with onboarding (translocation banner visible)"
-	open "$(BUILD_OUTPUT_DIR)/Build/Products/$(CONFIG)/Glide.app" --args -force-onboarding -translocation
+	@$(LOGGER) log_info "Running Glide (Debug build)"
+	open "$(BUILD_OUTPUT_DIR)/Build/Products/Debug/Glide.app"
+
+run-onboarding: build-debug ## Build (Debug) and run Glide with onboarding dialog for UI testing
+	@$(LOGGER) log_separator
+	@$(LOGGER) log_info "Running Glide with onboarding (Debug build, translocation banner visible)"
+	open "$(BUILD_OUTPUT_DIR)/Build/Products/Debug/Glide.app" --args -force-onboarding -translocation
 
 # -----------------------------------------------------------------------------------------------------------
 # Test (Run tests (Debug configuration))

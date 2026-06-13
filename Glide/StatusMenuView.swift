@@ -131,14 +131,16 @@ struct StatusMenuView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 4) {
-            Text("Glide")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white)
-            if !appVersion.isEmpty {
-                Text("v\(appVersion)")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.white.opacity(0.55))
+        HStack {
+            HStack(alignment: .lastTextBaseline, spacing: 4) {
+                Text("Glide")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                if !appVersion.isEmpty {
+                    Text("v\(appVersion)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.white.opacity(0.55))
+                }
             }
             Spacer()
             ZStack {

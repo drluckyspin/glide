@@ -61,65 +61,73 @@ struct StatusMenuView: View {
     @ObservedObject var model: StatusMenuViewModel
     var onQuit: () -> Void
 
+    /// Matches the menu card fill.
+    static let menuBackground = NSColor(red: 0.18, green: 0.16, blue: 0.24, alpha: 1)
+
+    private static let cornerRadius: CGFloat = 14
+
     var body: some View {
-        ZStack {
-            backgroundGradient
+        VStack(alignment: .leading, spacing: 14) {
+            header
 
-            VStack(alignment: .leading, spacing: 14) {
-                header
+            Divider()
+                .background(dividerColor)
 
-                Divider()
-                    .background(Color.white.opacity(0.2))
-
-                toggleRow(title: "Disable", isOn: model.isDisabled) {
-                    model.toggleDisabled()
-                }
-
-                VStack(spacing: 10) {
-                    toggleRow(title: "Option", symbol: "option", isOn: model.enabledKeys.contains(.alt), isEnabled: !model.isDisabled) {
-                        model.toggleKey(.alt)
-                    }
-                    toggleRow(title: "Command", symbol: "command", isOn: model.enabledKeys.contains(.cmd), isEnabled: !model.isDisabled) {
-                        model.toggleKey(.cmd)
-                    }
-                    toggleRow(title: "Control", symbol: "control", isOn: model.enabledKeys.contains(.ctrl), isEnabled: !model.isDisabled) {
-                        model.toggleKey(.ctrl)
-                    }
-                    toggleRow(title: "Shift", symbol: "shift", isOn: model.enabledKeys.contains(.shift), isEnabled: !model.isDisabled) {
-                        model.toggleKey(.shift)
-                    }
-                }
-                .padding(.leading, 4)
-
-                Divider()
-                    .background(Color.white.opacity(0.2))
-
-                toggleRow(title: "Window Glide", isOn: model.useMouseMove, isEnabled: !model.isDisabled) {
-                    model.toggleMouseMove()
-                }
-
-                Divider()
-                    .background(Color.white.opacity(0.2))
-
-                Button("Reset to Defaults") {
-                    model.resetDefaults()
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.white.opacity(0.9))
-
-                Button("Quit") {
-                    onQuit()
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.white.opacity(0.9))
+            toggleRow(title: "Disable", isOn: model.isDisabled) {
+                model.toggleDisabled()
             }
-            .padding(16)
-            .compositingGroup()
-            .background(menuCardShape.fill(Color(red: 0.18, green: 0.16, blue: 0.24)))
-            .clipShape(menuCardShape)
-            .overlay(menuCardShape.stroke(Color.white.opacity(0.08), lineWidth: 1))
-            .padding(6)
+
+            VStack(spacing: 10) {
+                toggleRow(title: "Option", symbol: "option", isOn: model.enabledKeys.contains(.alt), isEnabled: !model.isDisabled) {
+                    model.toggleKey(.alt)
+                }
+                toggleRow(title: "Command", symbol: "command", isOn: model.enabledKeys.contains(.cmd), isEnabled: !model.isDisabled) {
+                    model.toggleKey(.cmd)
+                }
+                toggleRow(title: "Control", symbol: "control", isOn: model.enabledKeys.contains(.ctrl), isEnabled: !model.isDisabled) {
+                    model.toggleKey(.ctrl)
+                }
+                toggleRow(title: "Shift", symbol: "shift", isOn: model.enabledKeys.contains(.shift), isEnabled: !model.isDisabled) {
+                    model.toggleKey(.shift)
+                }
+            }
+            .padding(.leading, 4)
+
+            Divider()
+                .background(dividerColor)
+
+            toggleRow(title: "Window Glide", isOn: model.useMouseMove, isEnabled: !model.isDisabled) {
+                model.toggleMouseMove()
+            }
+
+            Divider()
+                .background(dividerColor)
+
+            Button("Reset to Defaults") {
+                model.resetDefaults()
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white.opacity(0.9))
+
+            Button("Quit") {
+                onQuit()
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.white.opacity(0.9))
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            menuCardShape
+                .fill(cardColor)
+                .shadow(color: Color.black.opacity(0.35), radius: 10, x: 0, y: 4)
+        }
+        .overlay(menuCardShape.stroke(Color.white.opacity(0.08), lineWidth: 1))
+        .overlay {
+            TopLeadingHighlight(cornerRadius: Self.cornerRadius)
+                .stroke(dividerColor, style: StrokeStyle(lineWidth: 0.5, lineCap: .round, lineJoin: .round))
+        }
+        .compositingGroup()
         .frame(width: 220)
         .fixedSize()
     }
@@ -187,21 +195,42 @@ struct StatusMenuView: View {
         Color(red: 0.70, green: 0.52, blue: 1.0)
     }
 
-    private var backgroundGradient: LinearGradient {
-        LinearGradient(
-            colors: [
-                Color(red: 0.04, green: 0.03, blue: 0.08),
-                Color(red: 0.14, green: 0.08, blue: 0.22),
-                Color(red: 0.05, green: 0.04, blue: 0.10)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
+    private var cardColor: Color {
+        Color(red: 0.18, green: 0.16, blue: 0.24)
+    }
+
+    private var dividerColor: Color {
+        Color.white.opacity(0.2)
     }
 
     private var menuCardShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 14)
+        RoundedRectangle(cornerRadius: Self.cornerRadius)
     }
 
     // headerGlow removed; icon glow is handled inside the header ZStack.
+}
+
+/// Hairline highlight on the top and left inner edges, following the corner radius.
+private struct TopLeadingHighlight: Shape {
+    var cornerRadius: CGFloat
+    var inset: CGFloat = 1
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let arcRadius = max(0, cornerRadius - inset)
+        let arcCenter = CGPoint(x: cornerRadius, y: cornerRadius)
+
+        // Left edge, then top-left arc, then top edge — one continuous stroke.
+        path.move(to: CGPoint(x: inset, y: rect.height - cornerRadius))
+        path.addLine(to: CGPoint(x: inset, y: cornerRadius))
+        path.addArc(
+            center: arcCenter,
+            radius: arcRadius,
+            startAngle: .degrees(180),
+            endAngle: .degrees(270),
+            clockwise: false
+        )
+        path.addLine(to: CGPoint(x: rect.width - cornerRadius, y: inset))
+        return path
+    }
 }

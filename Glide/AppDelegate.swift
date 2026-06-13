@@ -30,10 +30,10 @@ private func eventTapCallback(
 class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem!
-    // Popover-based replacement for the legacy NSMenu UI.
-    private let statusPopover = NSPopover()
+    // Borderless panel (no arrow) replaces NSPopover for a system-menu-like dropdown.
+    private var statusMenuPanel: StatusMenuPanel?
     private var statusMenuViewModel: StatusMenuViewModel?
-    // Click monitors are installed only while the popover is visible
+    // Click monitors are installed only while the menu panel is visible
     // so outside clicks close it like a native menu.
     private var globalClickMonitor: Any?
     private var localClickMonitor: Any?
@@ -69,7 +69,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     override func awakeFromNib() {
         super.awakeFromNib()
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        // We use an NSPopover for richer UI, so we intentionally do not attach NSMenu here.
+        // SwiftUI menu panel — no NSMenu attached to the status item.
         statusItem.menu = nil
         if let button = statusItem.button {
             button.image = NSImage(named: "MenuIcon")
@@ -445,37 +445,42 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 onQuit: { NSApp.terminate(nil) }
             )
         )
-        statusPopover.contentViewController = hostingController
-        statusPopover.contentSize = NSSize(width: 220, height: 320)
-        statusPopover.behavior = .transient
-        statusPopover.animates = true
+        hostingController.view.wantsLayer = true
+        hostingController.view.layer?.backgroundColor = NSColor.clear.cgColor
+        statusMenuPanel = StatusMenuPanel(contentViewController: hostingController)
     }
 
     @objc private func toggleStatusPopover() {
-        guard let button = statusItem.button else { return }
-        if statusPopover.isShown {
-            statusPopover.performClose(nil)
-            removeClickMonitors()
+        guard let button = statusItem.button, let panel = statusMenuPanel else { return }
+        if panel.isVisible {
+            closeStatusMenuPanel()
         } else {
-            // Refresh UI state from persisted prefs each time before showing.
             statusMenuViewModel?.syncFromPreferences()
-            statusPopover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            // Status bar windows report odd coordinates to NSPopover; align manually.
-            DispatchQueue.main.async { [weak self] in
-                self?.alignStatusPopover(to: button)
-            }
+            positionStatusMenuPanel(to: button)
+            panel.makeKeyAndOrderFront(nil)
             installClickMonitors()
         }
     }
 
-    /// Places the popover flush below the menu bar, centered on the status item.
-    private func alignStatusPopover(to button: NSStatusBarButton) {
-        guard let popoverWindow = statusPopover.contentViewController?.view.window,
+    private func closeStatusMenuPanel() {
+        statusMenuPanel?.orderOut(nil)
+        removeClickMonitors()
+    }
+
+    /// Places the menu flush below the menu bar, centered on the status item.
+    private func positionStatusMenuPanel(to button: NSStatusBarButton) {
+        guard let panel = statusMenuPanel,
               let buttonWindow = button.window,
               let screen = buttonWindow.screen ?? NSScreen.main else { return }
 
+        if let hostingView = panel.contentViewController?.view {
+            hostingView.layoutSubtreeIfNeeded()
+            let fitting = hostingView.fittingSize
+            panel.setContentSize(NSSize(width: max(220, fitting.width), height: fitting.height))
+        }
+
         let buttonOnScreen = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
-        var frame = popoverWindow.frame
+        var frame = panel.frame
 
         // visibleFrame.maxY is the screen-Y of the menu bar's bottom edge.
         let menuBarBottom = screen.visibleFrame.maxY
@@ -485,7 +490,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let visible = screen.visibleFrame
         frame.origin.x = min(max(frame.origin.x, visible.minX + 4), visible.maxX - frame.width - 4)
 
-        popoverWindow.setFrame(frame, display: true)
+        panel.setFrame(frame, display: false)
     }
 
     private func installClickMonitors() {
@@ -493,19 +498,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Global monitor catches clicks outside app; local monitor catches clicks in-app.
         globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
             guard let self else { return }
-            if self.isClickInsidePopover(event: event) { return }
-            self.statusPopover.performClose(nil)
+            if self.isClickInsideStatusMenu(event: event) { return }
+            self.closeStatusMenuPanel()
         }
         localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
             guard let self else { return event }
-            if self.isClickInsidePopover(event: event) { return event }
-            self.statusPopover.performClose(nil)
+            if self.isClickInsideStatusMenu(event: event) { return event }
+            self.closeStatusMenuPanel()
             return event
         }
     }
 
-    private func isClickInsidePopover(event: NSEvent) -> Bool {
-        guard let window = statusPopover.contentViewController?.view.window else { return false }
+    private func isClickInsideStatusMenu(event: NSEvent) -> Bool {
+        guard let window = statusMenuPanel else { return false }
         if event.window === window {
             return window.contentView?.bounds.contains(event.locationInWindow) ?? false
         }
@@ -560,4 +565,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - IBActions (legacy NSMenu removed)
+}
+
+// MARK: - Status menu panel
+
+private final class StatusMenuPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+
+    init(contentViewController: NSViewController) {
+        super.init(
+            contentRect: NSRect(x: 0, y: 0, width: 220, height: 100),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        isOpaque = false
+        backgroundColor = .clear
+        hasShadow = false
+        level = .popUpMenu
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        isFloatingPanel = true
+        becomesKeyOnlyIfNeeded = true
+        hidesOnDeactivate = false
+        self.contentViewController = contentViewController
+    }
 }

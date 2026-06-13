@@ -126,11 +126,12 @@ release **after** the release zip is published — otherwise visitors get a 404.
    `https://github.com/drluckyspin/glide/releases/download/v{version}/Glide-{version}.zip`
 2. **After the GitHub release exists**: open the site locally (`make site`) and confirm the
    Download button resolves to the new `.zip` asset.
-3. **Deploy the site** so the public landing page (e.g. glideapp.app) serves the updated
-   `site/index.html`.
+3. **Site deploy**: merging to `main` automatically deploys `site/` to production via Vercel.
+   No manual deploy step — just ensure `site/index.html` is updated in the release PR before
+   merge (step 1).
 
-> Do not skip this step — bumping the app version alone does not update what users download from
-> the website until `site/index.html` is committed and deployed.
+> Do not skip step 1 — bumping the app version alone does not update what users download from
+> the website until `site/index.html` is committed and merged to `main`.
 
 ---
 

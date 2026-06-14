@@ -83,7 +83,7 @@ def patch_dropdown(path: Path, version: str) -> None:
     text_color = (255, 255, 255, int(255 * 0.55))
     ascent, _ = font.getmetrics()
     text_y = y0 + max(0, (y1 - y0 - ascent) // 2) - 1
-    text_x = glide_end + 8
+    text_x = glide_end + 10
     draw.text((text_x, text_y), text, fill=text_color, font=font)
     img.save(path)
     print(f"Patched {path} -> {text}")

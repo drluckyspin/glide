@@ -73,9 +73,6 @@ struct StatusMenuView: View {
     @ObservedObject var model: StatusMenuViewModel
     var onQuit: () -> Void
 
-    /// Matches the menu card fill.
-    static let menuBackground = NSColor(red: 0.18, green: 0.16, blue: 0.24, alpha: 1)
-
     private static let cornerRadius: CGFloat = 14
     private static let menuWidth: CGFloat = 240
 
@@ -459,6 +456,10 @@ private struct HoverTooltipModifier: ViewModifier {
                 } else {
                     showTooltip = false
                 }
+            }
+            .onDisappear {
+                hoverTask?.cancel()
+                showTooltip = false
             }
             .overlayPreferenceValue(TooltipLabelFrameKey.self) { frame in
                 GeometryReader { _ in

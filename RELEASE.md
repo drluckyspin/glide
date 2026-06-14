@@ -141,8 +141,9 @@ release **after** the release zip is published — otherwise visitors get a 404.
 
 If the menu dropdown moves or resizes, update the `card` rectangle in
 `scripts/screenshot-layout.json` and replace `site/menubar-base.png` only when the
-desktop/menubar background changes. The dropdown PNG is scaled to the card bounds when
-compositing `site/menubar.png`.
+desktop/menubar background changes. The dropdown PNG is scaled to the card bounds (see
+`scale` in `scripts/screenshot-layout.json`, currently 1.07) when compositing
+`site/menubar.png`.
 
 ---
 

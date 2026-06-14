@@ -126,8 +126,10 @@ release **after** the release zip is published — otherwise visitors get a 404.
    `https://github.com/drluckyspin/glide/releases/download/v{version}/Glide-{version}.zip`
 2. **Refresh screenshots** (macOS only): run `make screenshots`. This rebuilds
    `docs/drop-down.png`, `docs/onboarding.png`, the matching `site/` copies, and
-   `site/menubar.png` (dropdown composited onto `site/menubar-base.png` using
-   coordinates in `scripts/screenshot-layout.json`).
+   `site/menubar.png` (the freshly rendered dropdown is scaled to the `card`
+   footprint in `scripts/screenshot-layout.json` and stamped onto the clean
+   menubar capture `site/menubar-base.png`, reusing its wallpaper, rounded
+   corners, and drop shadow).
    `site/glide-hero.png` still needs a manual capture if you want that updated.
 3. **After the GitHub release exists**: open the site locally (`make site`) and confirm the
    Download button resolves to the new `.zip` asset.
@@ -139,9 +141,12 @@ release **after** the release zip is published — otherwise visitors get a 404.
 > the website until `site/index.html` is committed and merged to `main`. Step 2 keeps README
 > and site menu screenshots in sync with the release version.
 
-If the menu dropdown moves or resizes, update `scripts/screenshot-layout.json` (paste
-coordinates) and replace `site/menubar-base.png` only when the desktop/menubar background
-changes.
+The menu card is always the same rounded rectangle, so compositing just stamps the
+current dropdown over the card region of `site/menubar-base.png`; the corners and
+shadow come from that base. If the dropdown moves or resizes, update the `card`
+rectangle in `scripts/screenshot-layout.json`. To refresh the desktop/menubar
+background, drop a new clean capture at `site/menubar-source.png` and run
+`python3 scripts/prepare-menubar-base.py` to regenerate `site/menubar-base.png`.
 
 ---
 

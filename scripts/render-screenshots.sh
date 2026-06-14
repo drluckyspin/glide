@@ -41,12 +41,24 @@ if bash "$ROOT/scripts/build-screenshot-renderer.sh" >/tmp/screenshot-renderer-p
 	"$RENDERER" docs/onboarding.png onboarding
 	cp docs/onboarding.png site/onboarding.png
 
-	MENUBAR_BASE="$ROOT/$(read_layout menubar.base)"
 	MENUBAR_OUTPUT="$ROOT/$(read_layout menubar.output)"
-	MENUBAR_X="$(read_layout menubar.dropdown.x)"
-	MENUBAR_Y="$(read_layout menubar.dropdown.y)"
 
-	"$RENDERER" composite "$MENUBAR_BASE" site/drop-down.png "$MENUBAR_X" "$MENUBAR_Y" "$MENUBAR_OUTPUT"
+	python3 - "$ROOT" "$MENUBAR_OUTPUT" <<'PY'
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+output = Path(sys.argv[2])
+sys.path.insert(0, str(root / "scripts"))
+from importlib.util import spec_from_loader, module_from_spec
+from importlib.machinery import SourceFileLoader
+
+spec = spec_from_loader("patch", SourceFileLoader("patch", str(root / "scripts/patch-screenshot-version.py")))
+mod = module_from_spec(spec)
+spec.loader.exec_module(mod)
+# composite_menubar reads the base image from the layout; pass the configured output path.
+mod.composite_menubar(root / "site/drop-down.png", output)
+PY
 else
 	echo "Swift screenshot renderer unavailable; using PNG patch fallback." >&2
 	python3 "$ROOT/scripts/patch-screenshot-version.py"

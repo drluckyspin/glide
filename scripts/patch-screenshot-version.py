@@ -8,6 +8,13 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
+# Pillow >= 9.1 exposes resampling filters under Image.Resampling; older releases
+# only have the top-level constants (e.g. Image.LANCZOS).
+try:
+    LANCZOS = Image.Resampling.LANCZOS
+except AttributeError:  # pragma: no cover - Pillow < 9.1
+    LANCZOS = Image.LANCZOS
+
 ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = ROOT / "scripts" / "screenshot-layout.json"
 
@@ -102,18 +109,27 @@ def composite_menubar(dropdown: Path, output: Path) -> None:
     layout = json.loads(LAYOUT.read_text(encoding="utf-8"))
     menubar = layout["menubar"]
     base = ROOT / menubar["base"]
-    x = int(menubar["dropdown"]["x"])
-    y = int(menubar["dropdown"]["y"])
+    card = menubar["card"]
+    card_x = int(card["x"])
+    card_y = int(card["y"])
+    card_w = int(card["width"])
+    card_h = int(card["height"])
+
     overlay = Image.open(dropdown).convert("RGBA")
     canvas = Image.open(base).convert("RGBA")
 
-    # Opaque backing so any transparency in the PNG does not reveal the old menu in base.
-    card_color = overlay.getpixel((8, 32))[:3]
-    backing = Image.new("RGBA", overlay.size, card_color + (255,))
-    canvas.paste(backing, (x, y))
-    canvas.paste(overlay, (x, y), overlay)
+    # The base is a clean menubar capture whose card silhouette, rounded corners,
+    # drop shadow, and surrounding wallpaper are all pixel-perfect. The menu card
+    # is always the same rounded rectangle regardless of its contents, so we simply
+    # scale the freshly rendered dropdown to that footprint and stamp it over the
+    # old card. The new card fully covers the old body; its anti-aliased corners
+    # reveal the original wallpaper + contact shadow underneath, so corners and
+    # shadow match the source exactly (no synthesized shadow or wallpaper fill,
+    # which is what previously produced bright fringes at the corners).
+    scaled = overlay.resize((card_w, card_h), LANCZOS)
+    canvas.paste(scaled, (card_x, card_y), scaled)
     canvas.save(output)
-    print(f"Composited {output}")
+    print(f"Composited {output} (card {card_w}x{card_h} at {card_x},{card_y})")
 
 
 def main() -> None:

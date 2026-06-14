@@ -52,6 +52,7 @@ held down at the same time for drag or resize to activate.
 - Run tests with `make test`
 - Run the built app with `make run`
 - Clean local build output with `make clean`
+- Regenerate README/site screenshots after a version bump with `make screenshots` (macOS only)
 - Install your current version into /Applications `make install`
 - Package up a version for testing `make dev-package` (unsigned DMG, no notarization)
 - Build a signed + notarized DMG for distribution with `make release` (see notes below)

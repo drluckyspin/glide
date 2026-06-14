@@ -20,6 +20,7 @@
 #   sign                    : Codesign and notarize (requires secrets/secrets.env)
 #   check                   : Verify all developer dependencies
 #   bump-version            : Sync VERSION into plist and site (download + Vemetric)
+#   screenshots             : Regenerate docs/ and site/ PNGs from current VERSION (macOS only)
 #   run                     : Build and run the app (Release)
 #   run-debug               : Build and run the app (Debug, no provisioning profile)
 #   run-onboarding          : Build (Debug) and run with onboarding dialog
@@ -60,7 +61,7 @@ DMG_VOLICON     = $(DIST_DIR)/Glide.app/Contents/Resources/AppIcon.icns
 SIGN_IDENTITY   ?= Developer ID Application
 
 # All Phony targets
-.PHONY: help build build-debug run run-debug run-onboarding install test clean open site dev-package release release-prep sign check check_xcode check_xcode_first_launch check_brew check_create_dmg bump-version
+.PHONY: help build build-debug run run-debug run-onboarding install test clean open site dev-package release release-prep sign check check_xcode check_xcode_first_launch check_brew check_create_dmg bump-version screenshots
 
 
 # -----------------------------------------------------------------------------------------------------------
@@ -145,7 +146,17 @@ bump-version: ## Sync VERSION into plist and site (download URL + data-vmtrc-ver
 		sed -i '' -e "s|https://github.com/drluckyspin/glide/releases/download/v[^/]*/Glide-[^/]*\\.zip|https://github.com/drluckyspin/glide/releases/download/v$$V/Glide-$$V.zip|g" "$$SITE"; \
 		sed -i '' -e "s|data-vmtrc-version=\"[^\"]*\"|data-vmtrc-version=\"$$V\"|g" "$$SITE"; \
 		$(LOGGER) log_success "Updated site/index.html (GitHub download + data-vmtrc-version) to $$V"; \
-	fi
+	fi; \
+	$(LOGGER) log_info_dim "Run 'make screenshots' to refresh docs/ and site/ PNGs with v$$V"
+
+# -----------------------------------------------------------------------------------------------------------
+# Screenshots (regenerate docs/ and site/ PNGs from VERSION — macOS + Xcode required)
+# -----------------------------------------------------------------------------------------------------------
+screenshots: ## Regenerate docs/ and site/ PNGs (drop-down, onboarding) from VERSION
+	@$(LOGGER) log_separator
+	@$(LOGGER) log_info "Rendering screenshots from VERSION"
+	@bash "$(MAKEFILE_DIR)scripts/render-screenshots.sh"
+	@$(LOGGER) log_success "Screenshots updated"
 
 # -----------------------------------------------------------------------------------------------------------
 # Build (Release configuration)

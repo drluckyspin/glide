@@ -7,7 +7,10 @@
       "y": 100,
       "width": 329,
       "height": 550,
-      "scale": 1.07
+      "scale": 1.07,
+      "anchor": "top",
+      "anchor_offset_y": -19,
+      "shadow_margin": 32
     }
   }
 }

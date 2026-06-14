@@ -19,10 +19,25 @@ def prepare_menubar_base(source: Path, output: Path) -> None:
     y = int(card["y"])
     w = int(card["width"])
     h = int(card["height"])
+    scale_factor = float(card.get("scale", 1.0))
+    shadow_margin = int(card.get("shadow_margin", 32))
+
+    # Extend the cleared region below the card so scaled dropdown overflow and any
+    # captured menu shadow do not leave stale menu pixels under anti-aliased corners.
+    dropdown = ROOT / "site/drop-down.png"
+    if dropdown.exists():
+        sample = Image.open(dropdown)
+        fit_scale = min(w / sample.width, h / sample.height)
+        scaled_h = int(round(sample.height * fit_scale * scale_factor))
+        overflow_bottom = max(0, (scaled_h - h + 1) // 2)
+    else:
+        overflow_bottom = max(0, int(round(h * (scale_factor - 1.0) / 2)))
+
+    fill_h = h + overflow_bottom + shadow_margin
 
     image = Image.open(source).convert("RGBA")
-    wallpaper = image.crop((400, y, image.width, y + h))
-    fill = wallpaper.resize((w, h), Image.Resampling.LANCZOS).filter(ImageFilter.GaussianBlur(radius=0.8))
+    wallpaper = image.crop((400, y, image.width, y + fill_h))
+    fill = wallpaper.resize((w, fill_h), Image.Resampling.LANCZOS).filter(ImageFilter.GaussianBlur(radius=0.8))
     image.paste(fill, (x, y))
     output.parent.mkdir(parents=True, exist_ok=True)
     image.save(output)

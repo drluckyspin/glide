@@ -107,20 +107,43 @@ def composite_menubar(dropdown: Path, output: Path) -> None:
     card_y = int(card["y"])
     card_w = int(card["width"])
     card_h = int(card["height"])
-    scale = float(card.get("scale", 1.0))
+    scale_factor = float(card.get("scale", 1.0))
+    anchor = str(card.get("anchor", "center"))
+    anchor_offset_y = int(card.get("anchor_offset_y", 0))
     overlay = Image.open(dropdown).convert("RGBA")
     canvas = Image.open(base).convert("RGBA")
-    card_color = overlay.getpixel((8, 32))[:3]
 
-    # Flatten transparency before scaling so rounded corners stay opaque on the wallpaper base.
-    flattened = Image.new("RGBA", overlay.size, card_color + (255,))
-    flattened = Image.alpha_composite(flattened, overlay)
-    scaled_w = max(1, int(card_w * scale))
-    scaled_h = max(1, int(card_h * scale))
-    scaled = flattened.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
+    # Scale uniformly so the menu keeps its aspect ratio, then paste with alpha so
+    # rounded corners blend with the wallpaper sampled into menubar-base.
+    fit_scale = min(card_w / overlay.width, card_h / overlay.height)
+    scale = fit_scale * scale_factor
+    scaled_w = max(1, int(round(overlay.width * scale)))
+    scaled_h = max(1, int(round(overlay.height * scale)))
+
+    if anchor == "top":
+        paste_y = card_y + anchor_offset_y
+        max_scaled_h = card_y + card_h - paste_y
+        if scaled_h > max_scaled_h:
+            scale = max_scaled_h / overlay.height
+            scaled_w = max(1, int(round(overlay.width * scale)))
+            scaled_h = max(1, int(round(overlay.height * scale)))
+    elif anchor == "bottom":
+        paste_y = card_y + card_h - scaled_h
+    elif anchor == "center":
+        paste_y = card_y - (scaled_h - card_h) // 2
+        overflow_bottom = paste_y + scaled_h - (card_y + card_h)
+        if overflow_bottom > 0:
+            scale = (card_h + (scaled_h - card_h) // 2) / overlay.height
+            scaled_w = max(1, int(round(overlay.width * scale)))
+            scaled_h = max(1, int(round(overlay.height * scale)))
+            paste_y = card_y - (scaled_h - card_h) // 2
+    else:
+        raise ValueError(f"Unknown menubar anchor: {anchor}")
+
+    scaled = overlay.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
     paste_x = card_x - (scaled_w - card_w) // 2
-    paste_y = card_y - (scaled_h - card_h) // 2
-    canvas.paste(scaled, (paste_x, paste_y))
+
+    canvas.paste(scaled, (paste_x, paste_y), scaled)
     canvas.save(output)
     print(f"Composited {output}")
 

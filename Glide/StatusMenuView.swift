@@ -289,13 +289,17 @@ private struct MouseActionIconView: View {
 
     var body: some View {
         ZStack {
+            if style == .glide {
+                MouseGlideMotionShape()
+                    .stroke(color, style: StrokeStyle(lineWidth: 1.25, lineCap: .round))
+            }
             if style == .resize {
-                MouseRightButtonShape()
+                MouseRightButtonShape(style: style)
                     .fill(color)
             }
-            MouseBodyShape()
+            MouseBodyShape(style: style)
                 .stroke(color, style: StrokeStyle(lineWidth: 1.25, lineCap: .round, lineJoin: .round))
-            MouseButtonDividerShape()
+            MouseButtonDividerShape(style: style)
                 .stroke(color, style: StrokeStyle(lineWidth: 1, lineCap: .round))
         }
         .frame(width: 16, height: 16)
@@ -308,26 +312,41 @@ private struct MouseBodyMetrics {
     let midX: CGFloat
     let buttonLineY: CGFloat
 
-    init(in rect: CGRect) {
-        body = CGRect(x: rect.width * 0.22, y: rect.height * 0.08, width: rect.width * 0.56, height: rect.height * 0.84)
-        corner = min(body.width, body.height) * 0.28
+    init(in rect: CGRect, style: MouseActionIconView.Style) {
+        let xFactor: CGFloat = style == .glide ? 0.30 : 0.22
+        let widthFactor: CGFloat = style == .glide ? 0.52 : 0.56
+        body = CGRect(
+            x: rect.width * xFactor,
+            y: rect.height * 0.08,
+            width: rect.width * widthFactor,
+            height: rect.height * 0.84
+        )
+        corner = body.width / 2
         midX = body.midX
-        buttonLineY = body.minY + body.height * 0.38
+        buttonLineY = body.minY + body.height * 0.36
     }
 }
 
 private struct MouseBodyShape: Shape {
+    var style: MouseActionIconView.Style
+
     func path(in rect: CGRect) -> Path {
-        let m = MouseBodyMetrics(in: rect)
+        let m = MouseBodyMetrics(in: rect, style: style)
         var path = Path()
-        path.addRoundedRect(in: m.body, cornerSize: CGSize(width: m.corner, height: m.corner))
+        path.addRoundedRect(
+            in: m.body,
+            cornerSize: CGSize(width: m.corner, height: m.corner),
+            style: .continuous
+        )
         return path
     }
 }
 
 private struct MouseButtonDividerShape: Shape {
+    var style: MouseActionIconView.Style
+
     func path(in rect: CGRect) -> Path {
-        let m = MouseBodyMetrics(in: rect)
+        let m = MouseBodyMetrics(in: rect, style: style)
         var path = Path()
         path.move(to: CGPoint(x: m.midX, y: m.body.minY + m.body.height * 0.14))
         path.addLine(to: CGPoint(x: m.midX, y: m.buttonLineY))
@@ -335,20 +354,47 @@ private struct MouseButtonDividerShape: Shape {
     }
 }
 
-private struct MouseRightButtonShape: Shape {
+private struct MouseGlideMotionShape: Shape {
     func path(in rect: CGRect) -> Path {
-        let m = MouseBodyMetrics(in: rect)
+        let m = MouseBodyMetrics(in: rect, style: .glide)
+        let lineStartX = rect.minX + rect.width * 0.06
+        let lineEndX = m.body.minX - rect.width * 0.04
+        let upperY = m.body.midY - m.body.height * 0.17
+        let lowerY = m.body.midY + m.body.height * 0.13
+
+        var path = Path()
+        path.move(to: CGPoint(x: lineStartX, y: upperY))
+        path.addLine(to: CGPoint(x: lineEndX, y: upperY))
+        path.move(to: CGPoint(x: lineStartX, y: lowerY))
+        path.addLine(to: CGPoint(x: lineEndX, y: lowerY))
+        return path
+    }
+}
+
+private struct MouseRightButtonShape: Shape {
+    var style: MouseActionIconView.Style
+
+    func path(in rect: CGRect) -> Path {
+        let m = MouseBodyMetrics(in: rect, style: style)
         let inset: CGFloat = 1.15
         let rightButton = CGRect(
-            x: m.midX + inset * 0.25,
-            y: m.body.minY + m.body.height * 0.12,
+            x: m.midX + inset * 0.2,
+            y: m.body.minY + inset * 0.35,
             width: m.body.maxX - m.midX - inset,
-            height: m.buttonLineY - m.body.minY - m.body.height * 0.08
+            height: m.buttonLineY - m.body.minY - inset * 0.25
         )
+        let topTrailing = min(m.corner - inset * 0.5, rightButton.width * 0.85, rightButton.height * 0.55)
+        let inner = min(1.2, rightButton.width * 0.2)
         var path = Path()
         path.addRoundedRect(
             in: rightButton,
-            cornerSize: CGSize(width: m.corner * 0.42, height: m.corner * 0.42)
+            cornerRadii: RectangleCornerRadii(
+                topLeading: inner,
+                bottomLeading: inner,
+                bottomTrailing: inner,
+                topTrailing: topTrailing
+            ),
+            style: .continuous
         )
         return path
     }

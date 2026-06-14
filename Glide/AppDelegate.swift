@@ -117,11 +117,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let useMouseMove = Preferences.shared.useMouseMove
+        let useRightClickResize = Preferences.shared.useRightClickResize
+
+        if !useRightClickResize
+            && (type == .rightMouseDown || type == .rightMouseDragged || type == .rightMouseUp) {
+            return passthrough
+        }
 
         // ── Initial tracking: find the window under the cursor ────────────────
         if (useMouseMove && type == .mouseMoved && moveResize.dragEventCount == 0)
             || type == .leftMouseDown
-            || type == .rightMouseDown {
+            || (useRightClickResize && type == .rightMouseDown) {
 
             let mouseLocation = event.location
             // `1` indicates an active gesture has started; increments on each drag event.
@@ -207,7 +213,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // ── Determine resize direction on right-click ─────────────────────────
-        if type == .rightMouseDown {
+        if useRightClickResize && type == .rightMouseDown {
             moveResize.dragEventCount = 1
             guard let win = moveResize.trackedWindow else { return nil }
 
@@ -251,7 +257,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // ── Resize window on right-drag ────────────────────────────────────────
-        if type == .rightMouseDragged && moveResize.dragEventCount > 0 {
+        if useRightClickResize && type == .rightMouseDragged && moveResize.dragEventCount > 0 {
             moveResize.dragEventCount += 1
             guard let win = moveResize.trackedWindow else { return nil }
 
@@ -434,6 +440,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             onSetMouseMove: { [weak self] enabled in
                 self?.setUseMouseMove(enabled)
             },
+            onSetRightClickResize: { [weak self] enabled in
+                self?.setUseRightClickResize(enabled)
+            },
             onReset: { [weak self] in
                 self?.resetToDefaults()
             }
@@ -476,7 +485,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let hostingView = panel.contentViewController?.view {
             hostingView.layoutSubtreeIfNeeded()
             let fitting = hostingView.fittingSize
-            panel.setContentSize(NSSize(width: max(220, fitting.width), height: fitting.height))
+            panel.setContentSize(NSSize(width: max(240, fitting.width), height: fitting.height))
         }
 
         let buttonOnScreen = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
@@ -542,6 +551,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setUseMouseMove(_ enabled: Bool) {
         Preferences.shared.useMouseMove = enabled
+    }
+
+    private func setUseRightClickResize(_ enabled: Bool) {
+        Preferences.shared.useRightClickResize = enabled
     }
 
     private func setDisabled(_ disabled: Bool) {

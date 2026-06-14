@@ -58,6 +58,7 @@ swiftc -O \
 	"$ROOT/Glide/OnboardingView.swift" \
 	-framework AppKit \
 	-framework SwiftUI \
-	-framework CoreGraphics
+	-framework CoreGraphics \
+	-framework ImageIO
 
 echo "$BIN"

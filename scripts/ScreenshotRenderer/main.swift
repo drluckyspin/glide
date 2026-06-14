@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import ImageIO
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -97,7 +98,7 @@ struct ScreenshotRenderer {
 
             Renders SwiftUI views to PNG for docs/ and site/ screenshots.
             composite pastes overlay onto base at top-left (x, y) in PNG coordinates.
-            --version defaults to CFBundleShortVersionString from the renderer bundle, then VERSION file.
+            --version defaults to the VERSION file in the repo root (then bundle version).
             """,
             stderr
         )
@@ -143,10 +144,17 @@ struct ScreenshotRenderer {
     }
 
     private static func resolvedVersion() -> String? {
+        if let versionFromFile = readVersionFile() {
+            return versionFromFile
+        }
         if let bundleVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
            !bundleVersion.isEmpty {
             return bundleVersion
         }
+        return nil
+    }
+
+    private static func readVersionFile() -> String? {
         let versionURL = URL(fileURLWithPath: "VERSION")
         guard let raw = try? String(contentsOf: versionURL, encoding: .utf8) else {
             return nil

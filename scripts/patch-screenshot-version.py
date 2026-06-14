@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 import sys
 from pathlib import Path
 
@@ -11,7 +10,6 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = ROOT / "scripts" / "screenshot-layout.json"
-VERSION_RE = re.compile(r"v\d+\.\d+\.\d+")
 
 
 def read_version() -> str:
@@ -67,6 +65,17 @@ def version_bbox(img: Image.Image) -> tuple[int, int, int, int]:
     return min(xs) - 1, min(ys) - 1, max(xs) + 2, max(ys) + 2
 
 
+def font_ascent(font: ImageFont.FreeTypeFont | ImageFont.ImageFont, text: str, size: int) -> int:
+    try:
+        ascent, _ = font.getmetrics()
+        return ascent
+    except AttributeError:
+        bbox = font.getbbox(text)
+        if bbox:
+            return bbox[3] - bbox[1]
+        return size
+
+
 def patch_dropdown(path: Path, version: str) -> None:
     img = Image.open(path).convert("RGBA")
     draw = ImageDraw.Draw(img)
@@ -81,7 +90,7 @@ def patch_dropdown(path: Path, version: str) -> None:
     font = load_font(10)
     text = f"v{version}"
     text_color = (255, 255, 255, int(255 * 0.55))
-    ascent, _ = font.getmetrics()
+    ascent = font_ascent(font, text, 10)
     text_y = y0 + max(0, (y1 - y0 - ascent) // 2) - 1
     text_x = glide_end + 10
     draw.text((text_x, text_y), text, fill=text_color, font=font)

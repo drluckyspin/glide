@@ -6,7 +6,7 @@ import json
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = ROOT / "scripts" / "screenshot-layout.json"
@@ -107,33 +107,19 @@ def composite_menubar(dropdown: Path, output: Path) -> None:
     card_y = int(card["y"])
     card_w = int(card["width"])
     card_h = int(card["height"])
-    radius = int(card.get("radius", 13))
-    shadow = menubar.get("shadow", {})
 
     overlay = Image.open(dropdown).convert("RGBA")
     canvas = Image.open(base).convert("RGBA")
 
-    # Scale the rendered dropdown to exactly fill the card footprint measured from
-    # the real capture, then paste with alpha so rounded corners reveal the clean
-    # wallpaper already painted into the base.
+    # The base is a clean menubar capture whose card silhouette, rounded corners,
+    # drop shadow, and surrounding wallpaper are all pixel-perfect. The menu card
+    # is always the same rounded rectangle regardless of its contents, so we simply
+    # scale the freshly rendered dropdown to that footprint and stamp it over the
+    # old card. The new card fully covers the old body; its anti-aliased corners
+    # reveal the original wallpaper + contact shadow underneath, so corners and
+    # shadow match the source exactly (no synthesized shadow or wallpaper fill,
+    # which is what previously produced bright fringes at the corners).
     scaled = overlay.resize((card_w, card_h), Image.Resampling.LANCZOS)
-
-    # Synthesize a soft drop shadow so the pasted card sits naturally on the desktop.
-    if shadow:
-        dx = int(shadow.get("dx", 0))
-        dy = int(shadow.get("dy", 7))
-        blur = float(shadow.get("blur", 14))
-        opacity = int(shadow.get("opacity", 95))
-        shadow_layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-        sdraw = ImageDraw.Draw(shadow_layer)
-        sdraw.rounded_rectangle(
-            [card_x + dx, card_y + dy, card_x + dx + card_w, card_y + dy + card_h],
-            radius=radius,
-            fill=(0, 0, 0, opacity),
-        )
-        shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=blur))
-        canvas = Image.alpha_composite(canvas, shadow_layer)
-
     canvas.paste(scaled, (card_x, card_y), scaled)
     canvas.save(output)
     print(f"Composited {output} (card {card_w}x{card_h} at {card_x},{card_y})")

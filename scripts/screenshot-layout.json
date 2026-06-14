@@ -1,27 +1,12 @@
 {
   "menubar": {
     "base": "site/menubar-base.png",
-    "source": "site/menubar-source.png",
     "output": "site/menubar.png",
     "card": {
       "x": 40,
       "y": 82,
       "width": 340,
-      "height": 596,
-      "radius": 13
-    },
-    "clear": {
-      "x": 20,
-      "y": 80,
-      "width": 380,
-      "height": 626,
-      "feather": 28
-    },
-    "shadow": {
-      "dx": 0,
-      "dy": 7,
-      "blur": 14,
-      "opacity": 95
+      "height": 596
     }
   }
 }

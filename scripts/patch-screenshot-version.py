@@ -27,11 +27,14 @@ def read_version() -> str:
 
 
 def load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    # Prefer the macOS system font (so a patch on macOS matches SwiftUI exactly);
+    # on Linux fall back to Liberation Sans, which is metric-compatible with the
+    # Helvetica/Arial-style UI font and lines up far better than DejaVu Sans.
     candidates = [
         "/System/Library/Fonts/SFNS.ttf",
         "/System/Library/Fonts/Supplemental/Arial.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     ]
     for path in candidates:
         if Path(path).exists():
@@ -39,68 +42,44 @@ def load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
-def glide_title_end_x(img: Image.Image) -> int:
+def title_metrics(img: Image.Image) -> tuple[int, int, int]:
+    """Locate the white 'Glide' title: returns (right_x, baseline_y, top_y).
+
+    The version label is rendered immediately to its right, sharing the baseline.
+    Only the title is white near the top-left; the version is muted grey and the
+    expand icon sits far right, so a brightness scan limited to the left columns
+    isolates 'Glide' reliably regardless of the version string.
+    """
     data = img.load()
-    end_x = 16
-    for y in range(24, min(36, img.height)):
-        for x in range(16, min(80, img.width)):
+    right = top = bottom = None
+    for y in range(12, 52):
+        for x in range(10, 110):
             r, g, b, a = data[x, y]
-            if a >= 200 and r > 200 and g > 200 and b > 200:
-                end_x = max(end_x, x)
-    return end_x
-
-
-def version_bbox(img: Image.Image) -> tuple[int, int, int, int]:
-    data = img.load()
-    width, height = img.size
-    min_x = glide_title_end_x(img) + 4
-    pixels: list[tuple[int, int]] = []
-
-    for y in range(24, min(36, height)):
-        for x in range(min_x, min(100, width)):
-            r, g, b, a = data[x, y]
-            if a < 200:
-                continue
-            if 95 <= r <= 185 and abs(int(r) - int(g)) < 22 and abs(int(g) - int(b)) < 22:
-                pixels.append((x, y))
-
-    if not pixels:
-        raise RuntimeError("Could not locate version label in dropdown image")
-
-    xs = [p[0] for p in pixels]
-    ys = [p[1] for p in pixels]
-    return min(xs) - 1, min(ys) - 1, max(xs) + 2, max(ys) + 2
-
-
-def font_ascent(font: ImageFont.FreeTypeFont | ImageFont.ImageFont, text: str, size: int) -> int:
-    try:
-        ascent, _ = font.getmetrics()
-        return ascent
-    except AttributeError:
-        bbox = font.getbbox(text)
-        if bbox:
-            return bbox[3] - bbox[1]
-        return size
+            if a >= 180 and r > 200 and g > 200 and b > 200:
+                right = x if right is None else max(right, x)
+                bottom = y if bottom is None else max(bottom, y)
+                top = y if top is None else min(top, y)
+    if right is None:
+        raise RuntimeError("Could not locate 'Glide' title in dropdown image")
+    return right, bottom, top
 
 
 def patch_dropdown(path: Path, version: str) -> None:
     img = Image.open(path).convert("RGBA")
     draw = ImageDraw.Draw(img)
-    x0, y0, x1, y1 = version_bbox(img)
-    glide_end = glide_title_end_x(img)
-    erase_x0 = max(x0, glide_end + 4)
-    sample_x = max(erase_x0, x0)
-    sample_y = min(img.height - 1, y0 + 2)
-    bg = img.getpixel((sample_x, sample_y))[:3]
-    draw.rectangle([erase_x0, y0, x1, y1], fill=bg + (255,))
+    glide_right, baseline, top = title_metrics(img)
+
+    # Sample the card background from an empty patch on the title line, between the
+    # version label and the expand icon, so the erase fill matches exactly.
+    bg = img.getpixel((min(img.width - 1, glide_right + 90), baseline - 3))[:3]
+    draw.rectangle([glide_right + 3, top - 4, glide_right + 88, baseline + 4], fill=bg + (255,))
 
     font = load_font(10)
     text = f"v{version}"
-    text_color = (255, 255, 255, int(255 * 0.55))
-    ascent = font_ascent(font, text, 10)
-    text_y = y0 + max(0, (y1 - y0 - ascent) // 2) - 1
-    text_x = glide_end + 10
-    draw.text((text_x, text_y), text, fill=text_color, font=font)
+    text_color = (255, 255, 255, int(255 * 0.6))
+    # anchor="ls" places the text by its left edge and baseline, so the version
+    # sits on the same baseline as 'Glide' (matching the SwiftUI layout).
+    draw.text((glide_right + 7, baseline), text, fill=text_color, font=font, anchor="ls")
     img.save(path)
     print(f"Patched {path} -> {text}")
 

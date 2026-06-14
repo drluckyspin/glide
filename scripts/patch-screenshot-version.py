@@ -34,13 +34,25 @@ def load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
+def glide_title_end_x(img: Image.Image) -> int:
+    data = img.load()
+    end_x = 16
+    for y in range(24, min(36, img.height)):
+        for x in range(16, min(80, img.width)):
+            r, g, b, a = data[x, y]
+            if a >= 200 and r > 200 and g > 200 and b > 200:
+                end_x = max(end_x, x)
+    return end_x
+
+
 def version_bbox(img: Image.Image) -> tuple[int, int, int, int]:
     data = img.load()
     width, height = img.size
+    min_x = glide_title_end_x(img) + 4
     pixels: list[tuple[int, int]] = []
 
     for y in range(24, min(36, height)):
-        for x in range(44, min(100, width)):
+        for x in range(min_x, min(100, width)):
             r, g, b, a = data[x, y]
             if a < 200:
                 continue
@@ -59,17 +71,20 @@ def patch_dropdown(path: Path, version: str) -> None:
     img = Image.open(path).convert("RGBA")
     draw = ImageDraw.Draw(img)
     x0, y0, x1, y1 = version_bbox(img)
-    sample_x = max(0, x0 - 2)
+    glide_end = glide_title_end_x(img)
+    erase_x0 = max(x0, glide_end + 4)
+    sample_x = max(erase_x0, x0)
     sample_y = min(img.height - 1, y0 + 2)
     bg = img.getpixel((sample_x, sample_y))[:3]
-    draw.rectangle([x0, y0, x1, y1], fill=bg + (255,))
+    draw.rectangle([erase_x0, y0, x1, y1], fill=bg + (255,))
 
     font = load_font(10)
     text = f"v{version}"
     text_color = (255, 255, 255, int(255 * 0.55))
     ascent, _ = font.getmetrics()
     text_y = y0 + max(0, (y1 - y0 - ascent) // 2) - 1
-    draw.text((x0, text_y), text, fill=text_color, font=font)
+    text_x = glide_end + 8
+    draw.text((text_x, text_y), text, fill=text_color, font=font)
     img.save(path)
     print(f"Patched {path} -> {text}")
 

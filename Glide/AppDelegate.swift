@@ -72,6 +72,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     override func awakeFromNib() {
         super.awakeFromNib()
+        // In --screenshot mode we render views and exit; skip status item setup so the
+        // app never touches the menu bar (awakeFromNib runs before applicationDidFinishLaunching).
+        if ProcessInfo.processInfo.arguments.contains("--screenshot") { return }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         // SwiftUI menu panel — no NSMenu attached to the status item.
         statusItem.menu = nil
@@ -617,7 +620,13 @@ extension AppDelegate {
 
         let version = value(for: "--version")
 
-        if let menuPath = value(for: "--menu") {
+        let menuPath = value(for: "--menu")
+        let onboardingPath = value(for: "--onboarding")
+        guard menuPath != nil || onboardingPath != nil else {
+            screenshotFail("--screenshot requires at least one of --menu or --onboarding")
+        }
+
+        if let menuPath {
             let model = StatusMenuViewModel(
                 isDisabled: false,
                 onToggleDisabled: { _ in },
@@ -632,7 +641,7 @@ extension AppDelegate {
             )
         }
 
-        if let onboardingPath = value(for: "--onboarding") {
+        if let onboardingPath {
             renderViewToPNG(
                 AnyView(OnboardingView(isTranslocated: false, onOpenSettings: {}, onQuit: {})),
                 to: onboardingPath

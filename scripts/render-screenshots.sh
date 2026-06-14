@@ -75,6 +75,12 @@ if command -v xcodebuild >/dev/null 2>&1 && xcodebuild build \
 		APP_BIN="$(find "$APP_BUILD_DIR/Build/Products" -name Glide -type f -perm -111 2>/dev/null | head -n 1)"
 	fi
 
+	if [[ -z "$APP_BIN" || ! -x "$APP_BIN" ]]; then
+		echo "error: xcodebuild succeeded but the Glide binary was not found under" >&2
+		echo "       $APP_BUILD_DIR/Build/Products (build output layout may have changed)." >&2
+		exit 1
+	fi
+
 	echo "Rendering screenshots from $APP_BIN (v$VERSION)"
 	"$APP_BIN" --screenshot \
 		--menu "$ROOT/docs/drop-down.png" \

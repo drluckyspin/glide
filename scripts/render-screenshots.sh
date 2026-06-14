@@ -61,6 +61,9 @@ mod.composite_menubar(root / "site/drop-down.png", output)
 PY
 else
 	echo "Swift screenshot renderer unavailable; using PNG patch fallback." >&2
+	echo "----- screenshot renderer build output -----" >&2
+	cat /tmp/screenshot-renderer-build.err >&2 2>/dev/null || true
+	echo "--------------------------------------------" >&2
 	python3 "$ROOT/scripts/patch-screenshot-version.py"
 fi
 

@@ -21,6 +21,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Pillow
+        shell: bash
+        # Required by the menubar compositing step and the PNG patch fallback.
+        run: python3 -m pip install --upgrade Pillow || python3 -m pip install --break-system-packages --upgrade Pillow
+
       - name: Render screenshots
         shell: bash
         run: make screenshots

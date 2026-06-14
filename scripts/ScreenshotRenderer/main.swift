@@ -1,5 +1,7 @@
 import AppKit
+import CoreGraphics
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// Simulates the clipped onboarding layout before the #18 fix (480pt window).
 private struct OnboardingClippedSnapshotView: View {
@@ -13,7 +15,44 @@ private struct OnboardingClippedSnapshotView: View {
 @main
 struct ScreenshotRenderer {
     static func main() {
-        guard let config = parseArguments(CommandLine.arguments) else {
+        let args = CommandLine.arguments
+        guard args.count > 1 else {
+            printUsage()
+            exit(1)
+        }
+
+        if args[1] == "composite" {
+            runComposite(args: args)
+            return
+        }
+
+        runRender(args: args)
+    }
+
+    private static func runComposite(args: [String]) {
+        guard args.count == 7 else {
+            printUsage()
+            exit(1)
+        }
+        let basePath = args[2]
+        let overlayPath = args[3]
+        guard let x = Int(args[4]), let y = Int(args[5]) else {
+            fputs("composite x and y must be integers\n", stderr)
+            exit(1)
+        }
+        let outputPath = args[6]
+
+        do {
+            try composite(base: basePath, overlay: overlayPath, x: x, y: y, to: outputPath)
+            print("Wrote \(outputPath)")
+        } catch {
+            fputs("Failed to composite images: \(error)\n", stderr)
+            exit(1)
+        }
+    }
+
+    private static func runRender(args: [String]) {
+        guard let config = parseRenderArguments(args) else {
             printUsage()
             exit(1)
         }
@@ -52,16 +91,19 @@ struct ScreenshotRenderer {
     private static func printUsage() {
         fputs(
             """
-            Usage: ScreenshotRenderer [--version <x.y.z>] <output.png> <menu|onboarding|onboarding-before>
+            Usage:
+              ScreenshotRenderer [--version <x.y.z>] <output.png> <menu|onboarding|onboarding-before>
+              ScreenshotRenderer composite <base.png> <overlay.png> <x> <y> <output.png>
 
             Renders SwiftUI views to PNG for docs/ and site/ screenshots.
+            composite pastes overlay onto base at top-left (x, y) in PNG coordinates.
             --version defaults to CFBundleShortVersionString from the renderer bundle, then VERSION file.
             """,
             stderr
         )
     }
 
-    private struct Config {
+    private struct RenderConfig {
         enum Mode: String {
             case menu
             case onboarding
@@ -73,7 +115,7 @@ struct ScreenshotRenderer {
         var mode: Mode
     }
 
-    private static func parseArguments(_ args: [String]) -> Config? {
+    private static func parseRenderArguments(_ args: [String]) -> RenderConfig? {
         var version: String?
         var positional: [String] = []
         var index = 1
@@ -91,13 +133,13 @@ struct ScreenshotRenderer {
             positional.append(arg)
             index += 1
         }
-        guard positional.count == 2, let mode = Config.Mode(rawValue: positional[1]) else {
+        guard positional.count == 2, let mode = RenderConfig.Mode(rawValue: positional[1]) else {
             return nil
         }
         if version == nil {
             version = resolvedVersion()
         }
-        return Config(version: version, outputPath: positional[0], mode: mode)
+        return RenderConfig(version: version, outputPath: positional[0], mode: mode)
     }
 
     private static func resolvedVersion() -> String? {
@@ -140,9 +182,86 @@ struct ScreenshotRenderer {
         try png.write(to: URL(fileURLWithPath: path))
     }
 
+    private static func composite(base basePath: String, overlay overlayPath: String, x: Int, y: Int, to outputPath: String) throws {
+        let baseURL = URL(fileURLWithPath: basePath)
+        let overlayURL = URL(fileURLWithPath: overlayPath)
+
+        guard let baseSource = CGImageSourceCreateWithURL(baseURL as CFURL, nil),
+              let baseImage = CGImageSourceCreateImageAtIndex(baseSource, 0, nil) else {
+            throw CompositeError.loadFailed(basePath)
+        }
+        guard let overlaySource = CGImageSourceCreateWithURL(overlayURL as CFURL, nil),
+              let overlayImage = CGImageSourceCreateImageAtIndex(overlaySource, 0, nil) else {
+            throw CompositeError.loadFailed(overlayPath)
+        }
+
+        let width = baseImage.width
+        let height = baseImage.height
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGBitmapInfo.byteOrder32Big.union(
+            CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue)
+        )
+
+        guard let context = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo.rawValue
+        ) else {
+            throw CompositeError.contextFailed
+        }
+
+        context.draw(baseImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        let overlayHeight = overlayImage.height
+        let destY = height - y - overlayHeight
+        context.draw(
+            overlayImage,
+            in: CGRect(x: x, y: destY, width: overlayImage.width, height: overlayHeight)
+        )
+
+        guard let result = context.makeImage() else {
+            throw CompositeError.encodeFailed
+        }
+
+        let outputURL = URL(fileURLWithPath: outputPath)
+        guard let destination = CGImageDestinationCreateWithURL(
+            outputURL as CFURL,
+            UTType.png.identifier as CFString,
+            1,
+            nil
+        ) else {
+            throw CompositeError.encodeFailed
+        }
+        CGImageDestinationAddImage(destination, result, nil)
+        guard CGImageDestinationFinalize(destination) else {
+            throw CompositeError.encodeFailed
+        }
+    }
+
     private enum RenderError: Error {
         case invalidSize
         case bitmapFailed
         case encodeFailed
+    }
+
+    private enum CompositeError: Error, CustomStringConvertible {
+        case loadFailed(String)
+        case contextFailed
+        case encodeFailed
+
+        var description: String {
+            switch self {
+            case .loadFailed(let path):
+                return "could not load image at \(path)"
+            case .contextFailed:
+                return "could not create graphics context"
+            case .encodeFailed:
+                return "could not encode PNG"
+            }
+        }
     }
 }

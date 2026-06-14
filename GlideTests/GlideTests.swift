@@ -36,13 +36,20 @@ final class GlideTests: XCTestCase {
         XCTAssertTrue(keys.contains(.shift))
     }
 
+    func testUseRightClickResizeDefaultsToTrue() {
+        UserDefaults.standard.removeObject(forKey: "UseRightClickResize")
+        XCTAssertTrue(Preferences.shared.useRightClickResize)
+    }
+
     func testResetToDefaults() {
         Preferences.shared.setKey(.ctrl, enabled: true)
+        Preferences.shared.useRightClickResize = false
         Preferences.shared.resetToDefaults()
         let keys = Preferences.shared.enabledKeys
         XCTAssertTrue(keys.contains(.cmd))
         XCTAssertTrue(keys.contains(.shift))
         XCTAssertFalse(keys.contains(.ctrl))
+        XCTAssertTrue(Preferences.shared.useRightClickResize)
     }
 
     // MARK: - WindowGlide: singleton

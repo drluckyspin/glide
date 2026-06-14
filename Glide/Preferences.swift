@@ -3,6 +3,7 @@ import CoreGraphics
 
 private let modifierFlagsKey = "ModifierFlags"
 private let useMouseMoveKey = "UseMouseMove"
+private let useRightClickResizeKey = "UseRightClickResize"
 
 enum ModifierKey: String, CaseIterable {
     case ctrl  = "CTRL"
@@ -39,6 +40,11 @@ final class Preferences {
         set { defaults.set(newValue, forKey: useMouseMoveKey) }
     }
 
+    var useRightClickResize: Bool {
+        get { defaults.bool(forKey: useRightClickResizeKey) }
+        set { defaults.set(newValue, forKey: useRightClickResizeKey) }
+    }
+
     var enabledKeys: Set<ModifierKey> {
         keySet(from: defaults.string(forKey: modifierFlagsKey) ?? "CMD,SHIFT")
     }
@@ -57,6 +63,7 @@ final class Preferences {
     func resetToDefaults() {
         defaults.removeObject(forKey: modifierFlagsKey)
         defaults.removeObject(forKey: useMouseMoveKey)
+        defaults.removeObject(forKey: useRightClickResizeKey)
     }
 
     // MARK: - Private
@@ -73,7 +80,8 @@ final class Preferences {
     private func registerDefaultsIfNeeded() {
         defaults.register(defaults: [
             modifierFlagsKey: "CMD,SHIFT",
-            useMouseMoveKey: true
+            useMouseMoveKey: true,
+            useRightClickResizeKey: true
         ])
     }
 }

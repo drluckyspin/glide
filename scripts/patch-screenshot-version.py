@@ -8,6 +8,13 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
+# Pillow >= 9.1 exposes resampling filters under Image.Resampling; older releases
+# only have the top-level constants (e.g. Image.LANCZOS).
+try:
+    LANCZOS = Image.Resampling.LANCZOS
+except AttributeError:  # pragma: no cover - Pillow < 9.1
+    LANCZOS = Image.LANCZOS
+
 ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = ROOT / "scripts" / "screenshot-layout.json"
 
@@ -119,7 +126,7 @@ def composite_menubar(dropdown: Path, output: Path) -> None:
     # reveal the original wallpaper + contact shadow underneath, so corners and
     # shadow match the source exactly (no synthesized shadow or wallpaper fill,
     # which is what previously produced bright fringes at the corners).
-    scaled = overlay.resize((card_w, card_h), Image.Resampling.LANCZOS)
+    scaled = overlay.resize((card_w, card_h), LANCZOS)
     canvas.paste(scaled, (card_x, card_y), scaled)
     canvas.save(output)
     print(f"Composited {output} (card {card_w}x{card_h} at {card_x},{card_y})")

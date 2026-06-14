@@ -1,0 +1,41 @@
+name: Render screenshots
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "Glide/StatusMenuView.swift"
+      - "Glide/OnboardingView.swift"
+      - "scripts/**"
+      - "VERSION"
+
+jobs:
+  screenshots:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Render screenshots
+        shell: bash
+        run: make screenshots
+
+      - name: Commit updated PNGs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/drop-down.png docs/onboarding.png \
+            site/drop-down.png site/onboarding.png site/menubar.png
+          if git diff --staged --quiet; then
+            echo "Screenshots already up to date."
+            exit 0
+          fi
+          git commit -m "Refresh screenshots for v$(tr -d ' \n\r' < VERSION | sed 's/^v//')"
+          git push

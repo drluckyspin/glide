@@ -6,7 +6,7 @@ import json
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 LAYOUT = ROOT / "scripts" / "screenshot-layout.json"
@@ -107,45 +107,36 @@ def composite_menubar(dropdown: Path, output: Path) -> None:
     card_y = int(card["y"])
     card_w = int(card["width"])
     card_h = int(card["height"])
-    scale_factor = float(card.get("scale", 1.0))
-    anchor = str(card.get("anchor", "center"))
-    anchor_offset_y = int(card.get("anchor_offset_y", 0))
+    radius = int(card.get("radius", 13))
+    shadow = menubar.get("shadow", {})
+
     overlay = Image.open(dropdown).convert("RGBA")
     canvas = Image.open(base).convert("RGBA")
 
-    # Scale uniformly so the menu keeps its aspect ratio, then paste with alpha so
-    # rounded corners blend with the wallpaper sampled into menubar-base.
-    fit_scale = min(card_w / overlay.width, card_h / overlay.height)
-    scale = fit_scale * scale_factor
-    scaled_w = max(1, int(round(overlay.width * scale)))
-    scaled_h = max(1, int(round(overlay.height * scale)))
+    # Scale the rendered dropdown to exactly fill the card footprint measured from
+    # the real capture, then paste with alpha so rounded corners reveal the clean
+    # wallpaper already painted into the base.
+    scaled = overlay.resize((card_w, card_h), Image.Resampling.LANCZOS)
 
-    if anchor == "top":
-        paste_y = card_y + anchor_offset_y
-        max_scaled_h = card_y + card_h - paste_y
-        if scaled_h > max_scaled_h:
-            scale = max_scaled_h / overlay.height
-            scaled_w = max(1, int(round(overlay.width * scale)))
-            scaled_h = max(1, int(round(overlay.height * scale)))
-    elif anchor == "bottom":
-        paste_y = card_y + card_h - scaled_h
-    elif anchor == "center":
-        paste_y = card_y - (scaled_h - card_h) // 2
-        overflow_bottom = paste_y + scaled_h - (card_y + card_h)
-        if overflow_bottom > 0:
-            scale = (card_h + (scaled_h - card_h) // 2) / overlay.height
-            scaled_w = max(1, int(round(overlay.width * scale)))
-            scaled_h = max(1, int(round(overlay.height * scale)))
-            paste_y = card_y - (scaled_h - card_h) // 2
-    else:
-        raise ValueError(f"Unknown menubar anchor: {anchor}")
+    # Synthesize a soft drop shadow so the pasted card sits naturally on the desktop.
+    if shadow:
+        dx = int(shadow.get("dx", 0))
+        dy = int(shadow.get("dy", 7))
+        blur = float(shadow.get("blur", 14))
+        opacity = int(shadow.get("opacity", 95))
+        shadow_layer = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+        sdraw = ImageDraw.Draw(shadow_layer)
+        sdraw.rounded_rectangle(
+            [card_x + dx, card_y + dy, card_x + dx + card_w, card_y + dy + card_h],
+            radius=radius,
+            fill=(0, 0, 0, opacity),
+        )
+        shadow_layer = shadow_layer.filter(ImageFilter.GaussianBlur(radius=blur))
+        canvas = Image.alpha_composite(canvas, shadow_layer)
 
-    scaled = overlay.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
-    paste_x = card_x - (scaled_w - card_w) // 2
-
-    canvas.paste(scaled, (paste_x, paste_y), scaled)
+    canvas.paste(scaled, (card_x, card_y), scaled)
     canvas.save(output)
-    print(f"Composited {output}")
+    print(f"Composited {output} (card {card_w}x{card_h} at {card_x},{card_y})")
 
 
 def main() -> None:

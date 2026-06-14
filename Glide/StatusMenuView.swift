@@ -72,6 +72,8 @@ final class StatusMenuViewModel: ObservableObject {
 struct StatusMenuView: View {
     @ObservedObject var model: StatusMenuViewModel
     var onQuit: () -> Void
+    /// When set (e.g. by ScreenshotRenderer), shown instead of `Bundle.main` version.
+    var versionOverride: String?
 
     private static let cornerRadius: CGFloat = 14
     private static let menuWidth: CGFloat = 240
@@ -152,7 +154,10 @@ struct StatusMenuView: View {
     }
 
     private var appVersion: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        if let versionOverride, !versionOverride.isEmpty {
+            return versionOverride
+        }
+        return Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
     }
 
     private var header: some View {

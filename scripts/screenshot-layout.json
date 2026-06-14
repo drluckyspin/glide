@@ -1,0 +1,10 @@
+{
+  "menubar": {
+    "base": "site/menubar-base.png",
+    "output": "site/menubar.png",
+    "dropdown": {
+      "x": 133,
+      "y": 166
+    }
+  }
+}

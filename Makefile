@@ -152,7 +152,7 @@ bump-version: ## Sync VERSION into plist and site (download URL + data-vmtrc-ver
 # -----------------------------------------------------------------------------------------------------------
 # Screenshots (regenerate docs/ and site/ PNGs from VERSION — macOS + Xcode required)
 # -----------------------------------------------------------------------------------------------------------
-screenshots: ## Regenerate docs/ and site/ PNGs (drop-down, onboarding) from VERSION
+screenshots: ## Regenerate docs/ and site/ PNGs (drop-down, onboarding, menubar) from VERSION
 	@$(LOGGER) log_separator
 	@$(LOGGER) log_info "Rendering screenshots from VERSION"
 	@bash "$(MAKEFILE_DIR)scripts/render-screenshots.sh"

@@ -218,10 +218,20 @@ struct ScreenshotRenderer {
 
         let overlayHeight = overlayImage.height
         let destY = height - y - overlayHeight
-        context.draw(
-            overlayImage,
-            in: CGRect(x: x, y: destY, width: overlayImage.width, height: overlayHeight)
-        )
+        let destRect = CGRect(x: x, y: destY, width: overlayImage.width, height: overlayHeight)
+
+        if let overlayBitmap = NSBitmapImageRep(cgImage: overlayImage),
+           let cardColor = overlayBitmap.colorAt(x: 8, y: 32) {
+            context.setFillColor(
+                red: cardColor.redComponent,
+                green: cardColor.greenComponent,
+                blue: cardColor.blueComponent,
+                alpha: 1
+            )
+            context.fill(destRect)
+        }
+
+        context.draw(overlayImage, in: destRect)
 
         guard let result = context.makeImage() else {
             throw CompositeError.encodeFailed

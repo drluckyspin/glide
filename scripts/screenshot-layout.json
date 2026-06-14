@@ -5,6 +5,12 @@
     "dropdown": {
       "x": 133,
       "y": 166
+    },
+    "clear_card": {
+      "x": 80,
+      "y": 160,
+      "width": 300,
+      "height": 439
     }
   }
 }

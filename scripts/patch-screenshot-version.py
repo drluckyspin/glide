@@ -107,17 +107,15 @@ def composite_menubar(dropdown: Path, output: Path) -> None:
     card_y = int(card["y"])
     card_w = int(card["width"])
     card_h = int(card["height"])
-    drop_x = int(menubar["dropdown"]["x"])
-    drop_y = int(menubar["dropdown"]["y"])
-
     overlay = Image.open(dropdown).convert("RGBA")
     canvas = Image.open(base).convert("RGBA")
     card_color = overlay.getpixel((8, 32))[:3]
 
-    # Cover the full captured menu card (wider/taller than the rendered dropdown PNG).
-    card_fill = Image.new("RGBA", (card_w, card_h), card_color + (255,))
-    canvas.paste(card_fill, (card_x, card_y))
-    canvas.paste(overlay, (drop_x, drop_y), overlay)
+    # Flatten transparency before scaling so rounded corners stay opaque on the wallpaper base.
+    flattened = Image.new("RGBA", overlay.size, card_color + (255,))
+    flattened = Image.alpha_composite(flattened, overlay)
+    scaled = flattened.resize((card_w, card_h), Image.Resampling.LANCZOS)
+    canvas.paste(scaled, (card_x, card_y))
     canvas.save(output)
     print(f"Composited {output}")
 

@@ -523,6 +523,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if event.window === window {
             return window.contentView?.bounds.contains(event.locationInWindow) ?? false
         }
+
         let screenPoint: NSPoint
         if let eventWindow = event.window {
             let rect = eventWindow.convertToScreen(NSRect(origin: event.locationInWindow, size: .zero))
@@ -530,6 +531,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             screenPoint = event.locationInWindow
         }
+
+        // Let the status item button toggle the menu closed without the click monitor
+        // closing it first and the button action immediately re-opening it.
+        if let button = statusItem.button, let buttonWindow = button.window {
+            let buttonOnScreen = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
+            if buttonOnScreen.contains(screenPoint) {
+                return true
+            }
+        }
+
         return window.frame.contains(screenPoint)
     }
 

@@ -102,16 +102,22 @@ def composite_menubar(dropdown: Path, output: Path) -> None:
     layout = json.loads(LAYOUT.read_text(encoding="utf-8"))
     menubar = layout["menubar"]
     base = ROOT / menubar["base"]
-    x = int(menubar["dropdown"]["x"])
-    y = int(menubar["dropdown"]["y"])
+    card = menubar["card"]
+    card_x = int(card["x"])
+    card_y = int(card["y"])
+    card_w = int(card["width"])
+    card_h = int(card["height"])
+    drop_x = int(menubar["dropdown"]["x"])
+    drop_y = int(menubar["dropdown"]["y"])
+
     overlay = Image.open(dropdown).convert("RGBA")
     canvas = Image.open(base).convert("RGBA")
-
-    # Opaque backing so any transparency in the PNG does not reveal the old menu in base.
     card_color = overlay.getpixel((8, 32))[:3]
-    backing = Image.new("RGBA", overlay.size, card_color + (255,))
-    canvas.paste(backing, (x, y))
-    canvas.paste(overlay, (x, y), overlay)
+
+    # Cover the full captured menu card (wider/taller than the rendered dropdown PNG).
+    card_fill = Image.new("RGBA", (card_w, card_h), card_color + (255,))
+    canvas.paste(card_fill, (card_x, card_y))
+    canvas.paste(overlay, (drop_x, drop_y), overlay)
     canvas.save(output)
     print(f"Composited {output}")
 

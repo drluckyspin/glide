@@ -141,7 +141,8 @@ release **after** the release zip is published — otherwise visitors get a 404.
 
 If the menu dropdown moves or resizes, update `scripts/screenshot-layout.json` (paste
 coordinates) and replace `site/menubar-base.png` only when the desktop/menubar background
-changes.
+changes. The layout includes a `card` rectangle (full captured menu bounds) that is filled
+before compositing the narrower rendered dropdown PNG on top.
 
 ---
 

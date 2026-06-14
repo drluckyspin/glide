@@ -2,15 +2,15 @@
   "menubar": {
     "base": "site/menubar-base.png",
     "output": "site/menubar.png",
+    "card": {
+      "x": 50,
+      "y": 100,
+      "width": 329,
+      "height": 550
+    },
     "dropdown": {
       "x": 133,
       "y": 166
-    },
-    "clear_card": {
-      "x": 80,
-      "y": 160,
-      "width": 300,
-      "height": 439
     }
   }
 }

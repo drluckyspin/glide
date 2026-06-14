@@ -62,3 +62,7 @@ ehthumbs.db
 # Playgrounds
 timeline.xctimeline
 playground.xcworkspace
+
+# Python (screenshot tooling)
+__pycache__/
+*.py[cod]

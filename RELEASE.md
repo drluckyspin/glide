@@ -124,14 +124,24 @@ release **after** the release zip is published — otherwise visitors get a 404.
    `Glide/Glide-Info.plist` and rewrites the download URL and `data-vmtrc-version` in
    `site/index.html` to:
    `https://github.com/drluckyspin/glide/releases/download/v{version}/Glide-{version}.zip`
-2. **After the GitHub release exists**: open the site locally (`make site`) and confirm the
+2. **Refresh screenshots** (macOS only): run `make screenshots`. This rebuilds
+   `docs/drop-down.png`, `docs/onboarding.png`, the matching `site/` copies, and
+   `site/menubar.png` (dropdown composited onto `site/menubar-base.png` using
+   coordinates in `scripts/screenshot-layout.json`).
+   `site/glide-hero.png` still needs a manual capture if you want that updated.
+3. **After the GitHub release exists**: open the site locally (`make site`) and confirm the
    Download button resolves to the new `.zip` asset.
-3. **Site deploy**: merging to `main` automatically deploys `site/` to production via Vercel.
-   No manual deploy step — just ensure `site/index.html` is updated in the release PR before
-   merge (step 1).
+4. **Site deploy**: merging to `main` automatically deploys `site/` to production via Vercel.
+   No manual deploy step — just ensure `site/index.html` and refreshed PNGs are committed in
+   the release PR before merge (steps 1–2).
 
 > Do not skip step 1 — bumping the app version alone does not update what users download from
-> the website until `site/index.html` is committed and merged to `main`.
+> the website until `site/index.html` is committed and merged to `main`. Step 2 keeps README
+> and site menu screenshots in sync with the release version.
+
+If the menu dropdown moves or resizes, update `scripts/screenshot-layout.json` (paste
+coordinates) and replace `site/menubar-base.png` only when the desktop/menubar background
+changes.
 
 ---
 
@@ -144,6 +154,7 @@ into the plist.
 ```bash
 echo "1.2.5" > VERSION   # set the version you want
 make bump-version        # sync VERSION → plist + site download URL
+make screenshots         # refresh docs/ and site/ PNGs (macOS only)
 make release             # archive → codesign → notarize app → DMG → notarize DMG
 ```
 

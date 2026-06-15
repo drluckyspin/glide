@@ -36,7 +36,7 @@ Glide is distributed as a **signed, notarized DMG** via
 [landing site](https://github.com/drluckyspin/glide/tree/main/site) download button points at the same release zip.
 
 - Download the latest `Glide-{version}.zip` from the [Releases page](https://github.com/drluckyspin/glide/releases)
-- Open the DMG and **drag Glide to Applications** (do not run directly from the disk image)
+- Unzip `Glide-{version}.zip`, then open the extracted DMG and **drag Glide to Applications** (do not run directly from the disk image)
 - Launch Glide from Applications
 - Enable Privacy Settings during onboarding
 

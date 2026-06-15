@@ -30,20 +30,11 @@ print(cur)
 PY
 }
 
-if bash "$ROOT/scripts/build-screenshot-renderer.sh" >/tmp/screenshot-renderer-path.txt 2>/tmp/screenshot-renderer-build.err; then
-	RENDERER="$(cat /tmp/screenshot-renderer-path.txt)"
-	VERSION="$(tr -d ' \n\r' < "$ROOT/VERSION")"
-	VERSION="${VERSION#v}"
-
-	"$RENDERER" --version "$VERSION" docs/drop-down.png menu
-	cp docs/drop-down.png site/drop-down.png
-
-	"$RENDERER" docs/onboarding.png onboarding
-	cp docs/onboarding.png site/onboarding.png
-
-	MENUBAR_OUTPUT="$ROOT/$(read_layout menubar.output)"
-
-	python3 - "$ROOT" "$MENUBAR_OUTPUT" <<'PY'
+composite_menubar() {
+	# Stamp the freshly rendered dropdown onto the clean menubar capture (Pillow).
+	local output
+	output="$ROOT/$(read_layout menubar.output)"
+	python3 - "$ROOT" "$output" <<'PY'
 import sys
 from pathlib import Path
 
@@ -59,11 +50,51 @@ spec.loader.exec_module(mod)
 # composite_menubar reads the base image from the layout; pass the configured output path.
 mod.composite_menubar(root / "site/drop-down.png", output)
 PY
+}
+
+VERSION="$(tr -d ' \n\r' < "$ROOT/VERSION")"
+VERSION="${VERSION#v}"
+
+# Render the real app views (macOS only). Build the actual app with xcodebuild so the
+# asset catalog, fonts, and full view layer match production exactly, then run it in
+# the hidden `--screenshot` mode. Falls back to the Linux PNG patch when unavailable.
+APP_BUILD_DIR="$ROOT/build/screenshots"
+BUILD_LOG=/tmp/glide-screenshot-build.log
+
+if command -v xcodebuild >/dev/null 2>&1 && xcodebuild build \
+	-project "$ROOT/Glide.xcodeproj" \
+	-scheme Glide \
+	-configuration Release \
+	-derivedDataPath "$APP_BUILD_DIR" \
+	-destination 'platform=macOS' \
+	CODE_SIGNING_ALLOWED=NO \
+	>"$BUILD_LOG" 2>&1; then
+
+	APP_BIN="$APP_BUILD_DIR/Build/Products/Release/Glide.app/Contents/MacOS/Glide"
+	if [[ ! -x "$APP_BIN" ]]; then
+		APP_BIN="$(find "$APP_BUILD_DIR/Build/Products" -name Glide -type f -perm -111 2>/dev/null | head -n 1)"
+	fi
+
+	if [[ -z "$APP_BIN" || ! -x "$APP_BIN" ]]; then
+		echo "error: xcodebuild succeeded but the Glide binary was not found under" >&2
+		echo "       $APP_BUILD_DIR/Build/Products (build output layout may have changed)." >&2
+		exit 1
+	fi
+
+	echo "Rendering screenshots from $APP_BIN (v$VERSION)"
+	"$APP_BIN" --screenshot \
+		--menu "$ROOT/docs/drop-down.png" \
+		--onboarding "$ROOT/docs/onboarding.png" \
+		--version "$VERSION"
+
+	cp "$ROOT/docs/drop-down.png" "$ROOT/site/drop-down.png"
+	cp "$ROOT/docs/onboarding.png" "$ROOT/site/onboarding.png"
+	composite_menubar
 else
-	echo "Swift screenshot renderer unavailable; using PNG patch fallback." >&2
-	echo "----- screenshot renderer build output -----" >&2
-	cat /tmp/screenshot-renderer-build.err >&2 2>/dev/null || true
-	echo "--------------------------------------------" >&2
+	echo "xcodebuild app render unavailable; using PNG patch fallback." >&2
+	echo "----- app build output (tail) -----" >&2
+	tail -n 60 "$BUILD_LOG" >&2 2>/dev/null || true
+	echo "-----------------------------------" >&2
 	python3 "$ROOT/scripts/patch-screenshot-version.py"
 fi
 

@@ -49,6 +49,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - NSApplicationDelegate
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // --screenshot: render docs/site PNGs from the real app views and exit,
+        // before any menu bar / event-tap / onboarding setup runs. No-op otherwise.
+        AppDelegate.runScreenshotModeIfRequested()
+
         // -force-onboarding: always show onboarding (for testing the UI, e.g. with make run-onboarding).
         let forceOnboarding = ProcessInfo.processInfo.arguments.contains("-force-onboarding")
         if forceOnboarding {
@@ -68,6 +72,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     override func awakeFromNib() {
         super.awakeFromNib()
+        // In --screenshot mode we render views and exit; skip status item setup so the
+        // app never touches the menu bar (awakeFromNib runs before applicationDidFinishLaunching).
+        if ProcessInfo.processInfo.arguments.contains("--screenshot") { return }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         // SwiftUI menu panel — no NSMenu attached to the status item.
         statusItem.menu = nil
@@ -589,6 +596,100 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - IBActions (legacy NSMenu removed)
+}
+
+// MARK: - Screenshot rendering (headless docs/site automation)
+
+extension AppDelegate {
+    /// When launched with `--screenshot`, render the requested SwiftUI views to PNG and
+    /// terminate — without starting the status item, event taps, or onboarding. This is
+    /// how `make screenshots` / CI produce pixel-accurate marketing images straight from
+    /// the real app views (correct system font, spacing, and assets). No-op when the flag
+    /// is absent. Called from applicationDidFinishLaunching so AppKit/NSApp are ready.
+    ///
+    /// Usage:
+    ///   Glide --screenshot [--menu <out.png>] [--onboarding <out.png>] [--version x.y.z]
+    static func runScreenshotModeIfRequested() {
+        let args = ProcessInfo.processInfo.arguments
+        guard args.contains("--screenshot") else { return }
+
+        func value(for flag: String) -> String? {
+            guard let i = args.firstIndex(of: flag), i + 1 < args.count else { return nil }
+            return args[i + 1]
+        }
+
+        let version = value(for: "--version")
+
+        let menuPath = value(for: "--menu")
+        let onboardingPath = value(for: "--onboarding")
+        guard menuPath != nil || onboardingPath != nil else {
+            screenshotFail("--screenshot requires at least one of --menu or --onboarding")
+        }
+
+        if let menuPath {
+            let model = StatusMenuViewModel(
+                isDisabled: false,
+                onToggleDisabled: { _ in },
+                onSetKey: { _, _ in },
+                onSetMouseMove: { _ in },
+                onSetRightClickResize: { _ in },
+                onReset: {}
+            )
+            renderViewToPNG(
+                AnyView(StatusMenuView(model: model, onQuit: {}, versionOverride: version)),
+                to: menuPath
+            )
+        }
+
+        if let onboardingPath {
+            renderViewToPNG(
+                AnyView(OnboardingView(isTranslocated: false, onOpenSettings: {}, onQuit: {})),
+                to: onboardingPath
+            )
+        }
+
+        exit(0)
+    }
+
+    private static func renderViewToPNG(_ view: AnyView, to path: String) {
+        let hosting = NSHostingView(rootView: view)
+        hosting.layoutSubtreeIfNeeded()
+
+        let size = hosting.fittingSize
+        guard size.width > 0, size.height > 0 else {
+            screenshotFail("invalid render size for \(path)")
+        }
+        hosting.setFrameSize(size)
+        hosting.layoutSubtreeIfNeeded()
+
+        guard let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else {
+            screenshotFail("could not create bitmap for \(path)")
+        }
+        hosting.cacheDisplay(in: hosting.bounds, to: rep)
+
+        // Round-trip through TIFF so the PNG carries a well-formed color profile.
+        let image = NSImage(size: size)
+        image.addRepresentation(rep)
+        guard let tiff = image.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiff),
+              let png = bitmap.representation(using: .png, properties: [:]) else {
+            screenshotFail("could not encode PNG for \(path)")
+        }
+
+        do {
+            try png.write(to: URL(fileURLWithPath: path))
+            FileHandle.standardError.write(
+                Data("Rendered \(path) (\(Int(size.width))x\(Int(size.height)))\n".utf8)
+            )
+        } catch {
+            screenshotFail("could not write \(path): \(error)")
+        }
+    }
+
+    private static func screenshotFail(_ message: String) -> Never {
+        FileHandle.standardError.write(Data("screenshot error: \(message)\n".utf8))
+        exit(2)
+    }
 }
 
 // MARK: - Status menu panel

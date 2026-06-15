@@ -72,7 +72,7 @@ final class StatusMenuViewModel: ObservableObject {
 struct StatusMenuView: View {
     @ObservedObject var model: StatusMenuViewModel
     var onQuit: () -> Void
-    /// When set (e.g. by ScreenshotRenderer), shown instead of `Bundle.main` version.
+    /// When set (e.g. by the `--screenshot` render mode), shown instead of `Bundle.main` version.
     var versionOverride: String?
 
     private static let cornerRadius: CGFloat = 14

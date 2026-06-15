@@ -6,16 +6,29 @@ on:
     branches:
       - main
     paths:
-      - "Glide/StatusMenuView.swift"
-      - "Glide/OnboardingView.swift"
+      - "Glide/**"
       - "scripts/**"
       - "VERSION"
+      - ".github/workflows/screenshots.yaml"
+  pull_request:
+    paths:
+      - "Glide/**"
+      - "scripts/**"
+      - "VERSION"
+      - ".github/workflows/screenshots.yaml"
+
+# Least privilege by default. The render job executes repo code (including on
+# same-repo PRs) and stays read-only; the write-capable PR job runs only on
+# trusted events and never executes the repo build scripts.
+permissions:
+  contents: read
 
 jobs:
-  screenshots:
+  render:
+    name: Render and validate
     runs-on: macos-latest
     permissions:
-      contents: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -23,24 +36,67 @@ jobs:
 
       - name: Install Pillow
         shell: bash
-        # Required by the menubar compositing step and the PNG patch fallback.
+        # Required by the menubar compositing step (and the PNG patch fallback).
         run: python3 -m pip install --upgrade Pillow || python3 -m pip install --break-system-packages --upgrade Pillow
 
       - name: Render screenshots
         shell: bash
+        # Builds the real app with xcodebuild and renders the views via the hidden
+        # --screenshot mode (see scripts/render-screenshots.sh + Glide/AppDelegate.swift).
         run: make screenshots
 
-      - name: Commit updated PNGs
+      - name: Show changes
         shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/drop-down.png docs/onboarding.png \
-            site/drop-down.png site/onboarding.png site/menubar.png
-          if git diff --staged --quiet; then
-            echo "Screenshots already up to date."
-            exit 0
-          fi
-          git commit -m "Refresh screenshots for v$(tr -d ' \n\r' < VERSION | sed 's/^v//')"
-          git push
+        run: git --no-pager diff --stat -- docs site
+
+      - name: Upload rendered screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: |
+            docs/drop-down.png
+            docs/onboarding.png
+            site/drop-down.png
+            site/onboarding.png
+            site/menubar.png
+          if-no-files-found: error
+
+  propose-pr:
+    name: Open refresh PR
+    needs: render
+    # Only on trusted events (push to main / manual). Never on pull_request, so the
+    # write-capable token is never exposed to untrusted PR code. This job does not run
+    # the repo build scripts — it just lands the artifact rendered by the render job.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download rendered screenshots
+        uses: actions/download-artifact@v4
+        with:
+          name: screenshots
+
+      - name: Open PR with refreshed screenshots
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "Refresh app screenshots"
+          branch: automation/refresh-screenshots
+          delete-branch: true
+          title: "Refresh app screenshots"
+          body: |
+            Automated refresh of the docs/site screenshots, rendered from the real
+            app views by the macOS `Render screenshots` workflow.
+
+            Triggered by ${{ github.event_name }} on `${{ github.ref_name }}`.
+          add-paths: |
+            docs/drop-down.png
+            docs/onboarding.png
+            site/drop-down.png
+            site/onboarding.png
+            site/menubar.png

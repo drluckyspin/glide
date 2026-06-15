@@ -3,6 +3,16 @@
 This document describes the release process used by `.github/workflows/release.yaml`. Use it as a reference if you
 forget the steps or need to set up secrets.
 
+## Distribution
+
+Glide is **not** on the Mac App Store. Public releases are:
+
+1. **GitHub Releases** — CI publishes `Glide-{version}.zip` (signed, notarized DMG inside) when you push a `v*` tag.
+2. **Landing site** — `site/index.html` download button links to that release zip (URL updated by `make bump-version`).
+
+Secrets named `ASC_*` below are **App Store Connect API keys used only for Apple notarization** (`notarytool`). They are
+not used for Mac App Store submission.
+
 ## Triggers
 
 - **Tag push**: Push a tag matching `v*` (e.g. `v1.2.0`) to trigger a release.
@@ -10,14 +20,14 @@ forget the steps or need to set up secrets.
 
 ## Required Secrets (GitHub Repository Settings → Secrets and variables → Actions)
 
-| Secret                       | Description                                                | How to obtain                                                                               |
-| ---------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `APPLE_SIGNING_P12`          | Base64-encoded Developer ID Application certificate (.p12) | Export from Keychain Access, then `base64 -i YourCert.p12 \| pbcopy`                        |
-| `APPLE_SIGNING_P12_PASSWORD` | Password for the .p12 file                                 | Set when exporting the .p12                                                                 |
-| `ASC_KEY_ID`                 | App Store Connect API key ID (10 chars)                    | [App Store Connect → Users and Access → Keys](https://appstoreconnect.apple.com/access/api) |
-| `ASC_ISSUER_ID`              | App Store Connect issuer ID (UUID)                         | Same page as ASC_KEY_ID                                                                     |
-| `ASC_PRIVATE_KEY_B64`        | Base64-encoded .p8 private key                             | Download .p8 when creating the key, then `base64 -i AuthKey_XXX.p8 \| pbcopy`               |
-| `GITHUB_TOKEN`               | Auto-provided by GitHub Actions                            | No setup needed                                                                             |
+| Secret                       | Description                                                  | How to obtain                                                                               |
+| ---------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `APPLE_SIGNING_P12`          | Base64-encoded Developer ID Application certificate (.p12)   | Export from Keychain Access, then `base64 -i YourCert.p12 \| pbcopy`                        |
+| `APPLE_SIGNING_P12_PASSWORD` | Password for the .p12 file                                   | Set when exporting the .p12                                                                 |
+| `ASC_KEY_ID`                 | Notarization API key ID (10 chars; App Store Connect → Keys) | [App Store Connect → Users and Access → Keys](https://appstoreconnect.apple.com/access/api) |
+| `ASC_ISSUER_ID`              | Notarization issuer ID (UUID)                                | Same page as ASC_KEY_ID                                                                     |
+| `ASC_PRIVATE_KEY_B64`        | Base64-encoded .p8 private key (notarization only)           | Download .p8 when creating the key, then `base64 -i AuthKey_XXX.p8 \| pbcopy`               |
+| `GITHUB_TOKEN`               | Auto-provided by GitHub Actions                              | No setup needed                                                                             |
 
 ---
 
@@ -117,36 +127,31 @@ when users download and extract, they get the DMG with the icon intact.
 
 ### 14. Update site download link
 
-The landing page download button lives in `site/index.html`. It must point at the new GitHub
-release **after** the release zip is published — otherwise visitors get a 404.
+The landing page download button lives in `site/index.html`. It must point at the new GitHub release **after** the
+release zip is published — otherwise visitors get a 404.
 
-1. **Before tagging**: set `VERSION` and run `make bump-version`. This syncs the version into
-   `Glide/Glide-Info.plist` and rewrites the download URL and `data-vmtrc-version` in
-   `site/index.html` to:
+1. **Before tagging**: set `VERSION` and run `make bump-version`. This syncs the version into `Glide/Glide-Info.plist`
+   and rewrites the download URL and `data-vmtrc-version` in `site/index.html` to:
    `https://github.com/drluckyspin/glide/releases/download/v{version}/Glide-{version}.zip`
-2. **Refresh screenshots** (macOS only): run `make screenshots`. This rebuilds
-   `docs/drop-down.png`, `docs/onboarding.png`, the matching `site/` copies, and
-   `site/menubar.png` (the freshly rendered dropdown is scaled to the `card`
-   footprint in `scripts/screenshot-layout.json` and stamped onto the clean
-   menubar capture `site/menubar-base.png`, reusing its wallpaper, rounded
-   corners, and drop shadow).
-   `site/glide-hero.png` still needs a manual capture if you want that updated.
-3. **After the GitHub release exists**: open the site locally (`make site`) and confirm the
-   Download button resolves to the new `.zip` asset.
-4. **Site deploy**: merging to `main` automatically deploys `site/` to production via Vercel.
-   No manual deploy step — just ensure `site/index.html` and refreshed PNGs are committed in
-   the release PR before merge (steps 1–2).
+2. **Refresh screenshots** (macOS only): run `make screenshots`. This rebuilds `docs/drop-down.png`,
+   `docs/onboarding.png`, the matching `site/` copies, and `site/menubar.png` (the freshly rendered dropdown is scaled
+   to the `card` footprint in `scripts/screenshot-layout.json` and stamped onto the clean menubar capture
+   `site/menubar-base.png`, reusing its wallpaper, rounded corners, and drop shadow). `site/glide-hero.png` still needs
+   a manual capture if you want that updated.
+3. **After the GitHub release exists**: open the site locally (`make site`) and confirm the Download button resolves to
+   the new `.zip` asset.
+4. **Site deploy**: merging to `main` automatically deploys `site/` to production via Vercel. No manual deploy step —
+   just ensure `site/index.html` and refreshed PNGs are committed in the release PR before merge (steps 1–2).
 
-> Do not skip step 1 — bumping the app version alone does not update what users download from
-> the website until `site/index.html` is committed and merged to `main`. Step 2 keeps README
-> and site menu screenshots in sync with the release version.
+> Do not skip step 1 — bumping the app version alone does not update what users download from the website until
+> `site/index.html` is committed and merged to `main`. Step 2 keeps README and site menu screenshots in sync with the
+> release version.
 
-The menu card is always the same rounded rectangle, so compositing just stamps the
-current dropdown over the card region of `site/menubar-base.png`; the corners and
-shadow come from that base. If the dropdown moves or resizes, update the `card`
-rectangle in `scripts/screenshot-layout.json`. To refresh the desktop/menubar
-background, drop a new clean capture at `site/menubar-source.png` and run
-`python3 scripts/prepare-menubar-base.py` to regenerate `site/menubar-base.png`.
+The menu card is always the same rounded rectangle, so compositing just stamps the current dropdown over the card region
+of `site/menubar-base.png`; the corners and shadow come from that base. If the dropdown moves or resizes, update the
+`card` rectangle in `scripts/screenshot-layout.json`. To refresh the desktop/menubar background, drop a new clean
+capture at `site/menubar-source.png` and run `python3 scripts/prepare-menubar-base.py` to regenerate
+`site/menubar-base.png`.
 
 ---
 
@@ -202,7 +207,6 @@ Requirements:
 1. **Developer ID Application certificate**: Create in
    [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/certificates/list). Export as
    .p12.
-2. **App Store Connect API key**: Create in [Users and Access → Keys](https://appstoreconnect.apple.com/access/api).
-   Download the .p8 file once (it can't be re-downloaded).
-3. **Notarization**: Requires an Apple Developer Program membership. Notarytool uses the App Store Connect API key for
-   authentication.
+2. **Notarization API key** (App Store Connect → Users and Access → Keys): download the `.p8` once for `notarytool`
+   authentication. This is **not** Mac App Store distribution — only notarization.
+3. **Notarization**: Requires an Apple Developer Program membership. Notarytool uses the API key above.

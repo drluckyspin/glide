@@ -6,9 +6,9 @@ A simple utility that adds easy `modifier key + mouse drag` move and resize capa
 
 **Glide** focuses on one thing: simple, reliable window movement and resizing.
 
-There are many powerful window manager utilities for MacOS to be found in the AppStore. However, over time they have
-become bloated with ton of options. Glide stays laser beam focused on allowing you to drag and resize app windows with
-the minimal effort using your keys and mouse.
+There are many powerful window manager utilities for macOS. However, over time they have become bloated with a ton of
+options. Glide stays laser beam focused on allowing you to drag and resize app windows with the minimal effort using
+your keys and mouse.
 
 - Hold `Cmd + Shift` and drag any window under your cursor to move it
 - Hold `Cmd + Shift` and drag with **Right Mouse** anywhere in a window to resize it
@@ -31,8 +31,12 @@ held down at the same time for drag or resize to activate.
 
 ## Installation
 
-- Grab the latest version from the [Releases page](https://github.com/drluckyspin/glide/releases)
-- Open the DMG and **drag Glide to Applications** (do not run directly from the disk image)
+Glide is distributed as a **signed, notarized DMG** via
+[GitHub Releases](https://github.com/drluckyspin/glide/releases). The
+[landing site](https://github.com/drluckyspin/glide/tree/main/site) download button points at the same release zip.
+
+- Download the latest `Glide-{version}.zip` from the [Releases page](https://github.com/drluckyspin/glide/releases)
+- Unzip `Glide-{version}.zip`, then open the extracted DMG and **drag Glide to Applications** (do not run directly from the disk image)
 - Launch Glide from Applications
 - Enable Privacy Settings during onboarding
 

@@ -232,7 +232,7 @@ compositing) are updated by hand when the desktop/menubar scene changes.
 | Job          | When                               | Purpose                                                  |
 | ------------ | ---------------------------------- | -------------------------------------------------------- |
 | `render`     | PR + push to `main` (path filters) | Build, render, verify dimensions (read-only)             |
-| `propose-pr` | push/dispatch on `main` only       | Open a PR with refreshed PNGs (write; never runs on PRs) |
+| `propose-pr` | push to `main` + manual dispatch  | Open a PR with refreshed PNGs (write; never runs on PRs) |
 
 ---
 

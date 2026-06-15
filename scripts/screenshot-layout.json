@@ -1,7 +1,23 @@
 {
+  "dropdown": {
+    "docs": "docs/drop-down.png",
+    "site": "site/drop-down.png",
+    "width": 240,
+    "height": 421
+  },
+  "onboarding": {
+    "docs": "docs/onboarding.png",
+    "site": "site/onboarding.png",
+    "width": 430,
+    "height": 471,
+    "siteCss": "site/index.html — .settings-section--onboarding .screenshot-card aspect-ratio"
+  },
   "menubar": {
     "base": "site/menubar-base.png",
     "output": "site/menubar.png",
+    "width": 687,
+    "height": 798,
+    "siteCss": "site/index.html — .settings-section .screenshot-card aspect-ratio",
     "card": {
       "x": 40,
       "y": 82,

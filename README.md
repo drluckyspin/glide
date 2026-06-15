@@ -6,7 +6,7 @@ A simple utility that adds easy `modifier key + mouse drag` move and resize capa
 
 **Glide** focuses on one thing: simple, reliable window movement and resizing.
 
-There are many powerful window manager utilities for macOS. However, over time they have become bloated with ton of
+There are many powerful window manager utilities for macOS. However, over time they have become bloated with a ton of
 options. Glide stays laser beam focused on allowing you to drag and resize app windows with the minimal effort using
 your keys and mouse.
 

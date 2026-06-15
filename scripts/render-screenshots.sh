@@ -74,8 +74,9 @@ root = Path(sys.argv[1])
 layout = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
 errors: list[str] = []
 
-for key in ("dropdown", "onboarding", "menubar"):
-    entry = layout[key]
+for key, entry in layout.items():
+    if not isinstance(entry, dict) or "width" not in entry or "height" not in entry:
+        continue
     width = int(entry["width"])
     height = int(entry["height"])
     paths = {entry.get("docs"), entry.get("site"), entry.get("output")}

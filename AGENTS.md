@@ -4,19 +4,28 @@ Guidance for coding agents working in this repository.
 
 ## What Glide Is
 
-Glide is a **macOS menu-bar utility** that adds simple, reliable window **move** and **resize** via modifier keys + mouse drag. It deliberately avoids the feature bloat of full window managers — one job, done well.
+Glide is **assistive macOS software** — a menu-bar utility that adds simple, reliable window **move** and **resize** via modifier keys + mouse drag. It helps users who find standard title bars and resize edges difficult (limited dexterity, pain, tremor, fatigue, etc.). It deliberately avoids the feature bloat of full window managers — one job, done well.
 
 **Repository:** [github.com/drluckyspin/glide](https://github.com/drluckyspin/glide)  
 **License:** MIT  
 **Current version:** see `VERSION` (synced to `Glide/Glide-Info.plist` via `make bump-version`)
+
+### Distribution (direct download only)
+
+Glide is **not** distributed via the Mac App Store. Releases are:
+
+1. **Built and published** as signed, notarized DMG inside `Glide-{version}.zip` on [GitHub Releases](https://github.com/drluckyspin/glide/releases) (CI: push a `v*` tag).
+2. **Linked from the landing site** (`site/index.html` download button → GitHub release zip URL, updated by `make bump-version`).
+
+Do not add App Store download links, MAS-specific copy, or assumptions that Glide is (or will be) on the Mac App Store. App Store Connect API keys in release docs/secrets are used **only for Apple notarization** (`notarytool`), not for store submission.
 
 ### Product Goals
 
 - **Focused scope:** move and resize windows only — no tiling, snapping, multi-monitor layouts, etc.
 - **Low friction:** defaults should work out of the box (`Cmd + Shift` + drag).
 - **Native feel:** menu-bar app (`LSUIElement`), SwiftUI status dropdown, minimal onboarding for Accessibility permission.
-- **Trustworthy distribution:** signed, notarized Developer ID builds; users install from a DMG copied to `/Applications`.
-- **No third-party dependencies:** Apple frameworks only (`Cocoa`, `SwiftUI`, Accessibility APIs).
+- **Trustworthy distribution:** Developer ID signed + notarized builds; users download from the site/GitHub, open the DMG, and copy to `/Applications`.
+- **No app dependencies:** Apple frameworks only in the Glide target (`Cocoa`, `SwiftUI`, Accessibility APIs).
 
 ### Roadmap (not yet implemented)
 
@@ -45,8 +54,8 @@ Accessible from the menu-bar icon. All selected modifier keys must be held **sim
 
 - **Disabled** — globally turns Glide off (event tap disabled)
 - **Activation keys** — toggle `Option`, `Command`, `Control`, `Shift` (stored as comma-separated string in `UserDefaults`)
-- **Glide** — toggle hover-move mode (`useMouseMove`)
-- **Resize** — toggle right-click resize (`useRightClickResize`)
+- **Glide** — toggle hover-move mode (`useMouseMove`); tooltip: "Hover to move"
+- **Resize** — toggle right-click resize (`useRightClickResize`); tooltip: "Right-click drag"
 - **Reset to defaults** — `Cmd + Shift`, hover move on, resize on, Glide enabled
 - **Quit** — terminates the app
 
@@ -61,7 +70,7 @@ Shown on first launch when Accessibility permission is missing. Guides the user 
 
 ### Permissions
 
-Glide **requires Accessibility** (`AXIsProcessTrusted`) to read/write window position and size via `AXUIElement`. Without it, the app shows onboarding and polls until permission is granted.
+Glide **requires Accessibility** (`AXIsProcessTrusted`) to read/write window position and size via `AXUIElement`. Without it, the app shows onboarding and polls until permission is granted. `NSAccessibilityUsageDescription` in `Glide-Info.plist` frames this as assistive window control — keep that framing in related copy.
 
 ---
 
@@ -71,15 +80,17 @@ Glide **requires Accessibility** (`AXIsProcessTrusted`) to read/write window pos
 main.swift
   └── NSApplicationMain → AppDelegate
 
-AppDelegate.swift          ← lifecycle, CGEvent tap, menu panel, onboarding
+AppDelegate.swift          ← lifecycle, CGEvent tap, menu panel, onboarding, --screenshot mode
   ├── Preferences.swift    ← UserDefaults persistence
   ├── WindowGlide.swift    ← shared gesture state (tracked window, resize grip)
   ├── StatusMenuView.swift ← SwiftUI menu + StatusMenuViewModel
-  └── OnboardingView.swift ← first-run permission UI
+  ├── OnboardingView.swift ← first-run permission UI
+  └── OnboardingWindowController.swift
 
 GlideTests/                ← unit tests (Preferences, WindowGlide, launch smoke)
 site/                      ← static landing page (Vercel deploy on merge to main)
-scripts/                   ← log.bash (Makefile logging), ScreenshotRenderer
+scripts/                   ← render-screenshots.sh, screenshot-layout.json, log.bash, patch-screenshot-version.py
+.github/workflows/         ← release.yaml (signed DMG), screenshots.yaml (PNG refresh CI)
 ```
 
 ### Event handling (core mechanism)
@@ -92,6 +103,18 @@ scripts/                   ← log.bash (Makefile logging), ScreenshotRenderer
    - **Resize:** infer grip from right-click location in a 3×3 grid; update `AXSize` / `AXPosition` (throttled every 4 events)
 4. Handled events return `nil` (consumed); otherwise events pass through.
 5. When **Disabled**, the event tap is detached from the run loop.
+
+### `--screenshot` headless render mode
+
+Used by `make screenshots` and CI to regenerate marketing PNGs from real SwiftUI views:
+
+```bash
+Glide --screenshot [--menu <out.png>] [--onboarding <out.png>] [--version x.y.z]
+```
+
+- Skips status item, event tap, and normal onboarding flow (`awakeFromNib` early-returns in screenshot mode).
+- Output size follows each view's natural `fittingSize` (e.g. onboarding ≈ 430×471).
+- When dimensions change, update `scripts/screenshot-layout.json` **and** matching `aspect-ratio` rules in `site/index.html`.
 
 ### UI pattern
 
@@ -117,9 +140,10 @@ The status menu uses a custom **`StatusMenuPanel`** (borderless `NSPanel` at `.p
 | UI | SwiftUI (menu, onboarding) + AppKit (app shell, event tap) |
 | Deployment target | macOS 13.0 (Ventura) |
 | Xcode | `LastUpgradeCheck` 2630; SDK notes reference Xcode 26 APIs (e.g. `CGEventMask` bit shift) |
-| Packages | **None** — no SwiftPM, CocoaPods, or Carthage |
+| App packages | **None** — no SwiftPM, CocoaPods, or Carthage in the Glide target |
 | Build system | Xcode project (`Glide.xcodeproj`) + `Makefile` wrappers |
-| External tools | Homebrew `create-dmg` (for packaging) |
+| Packaging tools | Homebrew `create-dmg` (DMG creation) |
+| Dev tooling (not shipped) | Python 3 + Pillow (`patch-screenshot-version.py`, screenshot dimension verify in `render-screenshots.sh`) |
 
 ---
 
@@ -139,12 +163,55 @@ make test           # xcodebuild test (Debug)
 make clean          # Remove build/ and DMG artifacts
 make install        # Build and copy to /Applications (prompts if exists)
 make dev-package    # Unsigned DMG tagged "dev" for local testing
+make screenshots    # Regenerate docs/ + site/ PNGs from VERSION (macOS + Xcode)
 make site           # Open site/index.html in browser
 ```
 
 First-time Xcode setup: `xcodebuild -runFirstLaunch`
 
 Build output lives under `build/` (gitignored).
+
+---
+
+## Screenshots & Marketing Assets
+
+When menu or onboarding UI changes, refresh screenshots and keep layout metadata in sync.
+
+### Pipeline
+
+```bash
+make bump-version   # if VERSION changed
+make screenshots    # macOS only
+```
+
+**What it does** (`scripts/render-screenshots.sh`):
+
+1. Builds Glide with `xcodebuild` (unsigned)
+2. Runs `Glide --screenshot` to write `docs/drop-down.png` and `docs/onboarding.png`
+3. Copies PNGs to `site/`
+4. Composites `site/menubar.png` from `site/menubar-base.png` + dropdown (Pillow)
+5. Verifies all PNG dimensions against `scripts/screenshot-layout.json` (fails on drift)
+
+**Linux/CI without Xcode:** falls back to `scripts/patch-screenshot-version.py` (patches version text in existing PNGs only).
+
+### Canonical dimensions (`scripts/screenshot-layout.json`)
+
+| Asset | Size | Site CSS |
+| ----- | ---- | -------- |
+| Dropdown | 240×421 | (inline in composite) |
+| Onboarding | 430×471 | `.settings-section--onboarding .screenshot-card` |
+| Menubar composite | 687×798 | `.settings-section .screenshot-card` |
+
+If a view layout change alters rendered PNG size: update the JSON, re-run `make screenshots`, and update the matching `aspect-ratio` in `site/index.html`.
+
+**Manual assets:** `site/glide-hero.png` (full-desktop capture) and `site/menubar-base.png` (wallpaper base for compositing) are updated by hand when the desktop/menubar scene changes.
+
+### CI (`.github/workflows/screenshots.yaml`)
+
+| Job | When | Purpose |
+| --- | ---- | ------- |
+| `render` | PR + push to `main` (path filters) | Build, render, verify dimensions (read-only) |
+| `propose-pr` | push/dispatch on `main` only | Open a PR with refreshed PNGs (write; never runs on PRs) |
 
 ---
 
@@ -181,16 +248,17 @@ Full details: [`RELEASE.md`](RELEASE.md). Summary for agents:
 ### Standard release (CI — preferred)
 
 1. Set version: `echo "1.2.5" > VERSION && make bump-version`
-2. Commit `VERSION`, `Glide/Glide-Info.plist`, and `site/index.html`
-3. Merge to `main` (site deploys to production via **Vercel** automatically)
-4. Push tag: `git tag v1.2.5 && git push origin v1.2.5`
-5. GitHub Actions (`.github/workflows/release.yaml`) builds, signs, notarizes, creates DMG, zips it, and publishes a GitHub Release
+2. Run `make screenshots` if UI changed; commit PNG updates with the release
+3. Commit `VERSION`, `Glide/Glide-Info.plist`, and `site/index.html`
+4. Merge to `main` (site deploys to production via **Vercel** automatically)
+5. Push tag: `git tag v1.2.5 && git push origin v1.2.5`
+6. GitHub Actions (`.github/workflows/release.yaml`) builds, signs, notarizes, creates DMG, zips it, and publishes a GitHub Release
 
 **Triggers:** push of `v*` tag, or manual workflow dispatch (uses `VERSION` file).
 
 **Release artifact:** `Glide-{version}.zip` (DMG inside a zip — preserves custom DMG icon through GitHub's upload).
 
-**Download URL pattern:**
+**Download URL pattern** (used by the site download button):
 
 ```
 https://github.com/drluckyspin/glide/releases/download/v{version}/Glide-{version}.zip
@@ -211,6 +279,13 @@ make release    # archive → codesign → notarize app → DMG → notarize DMG
 - Does **not** create a GitHub release or `.zip` wrapper
 - Override signing identity: `make release SIGN_IDENTITY="Developer ID Application: Name (TEAMID)"`
 
+### CI workflows
+
+| Workflow | Trigger | Purpose |
+| -------- | ------- | ------- |
+| `release.yaml` | `v*` tag / dispatch | Sign, notarize, publish GitHub Release zip |
+| `screenshots.yaml` | PR/push (path filters) | Render and validate marketing PNGs |
+
 ### Secrets — do not commit
 
 | Location | Purpose |
@@ -227,7 +302,7 @@ Never commit, log, or embed signing credentials in source. The `secrets/` direct
 Static HTML landing page (`site/index.html`) with Tailwind CDN, custom CSS, and Vemetric analytics.
 
 - **Deploy:** merging to `main` deploys `site/` to production (Vercel)
-- **Download button:** must point at the GitHub release zip (updated by `make bump-version`)
+- **Download button:** points at the GitHub release zip (updated by `make bump-version`) — this is the only public download path
 - **Assets:** screenshots and icons live alongside `index.html` (`site/*.png`)
 - **Docs mirror:** `docs/` holds README screenshots; keep marketing copy aligned when UI changes
 
@@ -242,16 +317,19 @@ Preview locally: `make site`
 - Keep changes **minimal and focused** — match existing style in each file
 - Use **`make build`** / **`make test`** to verify Swift changes
 - Update **`VERSION` + `make bump-version`** when preparing a release (include `site/index.html`)
-- Preserve the **no-dependency** policy — Apple frameworks only
+- Run **`make screenshots`** after menu/onboarding UI changes; keep `screenshot-layout.json` and site `aspect-ratio` CSS in sync
+- Preserve the **no-dependency** policy in the Glide app target — Apple frameworks only
 - Respect **Accessibility** as a hard requirement; do not add workarounds that bypass user consent
 - Use **`make run-onboarding`** to manually test onboarding UI changes
 - Follow existing patterns: free-function event tap callback, `WindowGlide.shared` for gesture state, `Preferences.shared` for settings
+- Frame Glide as **assistive software** in user-facing copy where accessibility purpose matters
 
 ### Do not
 
 - Commit files under `secrets/`, `build/`, or `*.dmg`
 - Add SwiftPM/CocoaPods dependencies without explicit approval
 - Expand scope into full window management (tiling, spaces, rules engines, etc.)
+- Add Mac App Store download links or copy implying MAS distribution
 - Change signing/notarization flow without updating both `Makefile` and `.github/workflows/release.yaml`
 - Run `make release` or push tags unless the user explicitly asks
 - Create git commits or PRs unless requested
@@ -265,6 +343,9 @@ Preview locally: `make site`
 | Menu UI / toggles | `StatusMenuView.swift`, `AppDelegate.swift` (wiring) |
 | Defaults / prefs | `Preferences.swift` |
 | Onboarding copy/UI | `OnboardingView.swift`, `OnboardingWindowController.swift` |
+| Screenshot render mode | `AppDelegate.swift` (`--screenshot` extension) |
+| Screenshot automation | `scripts/render-screenshots.sh`, `scripts/screenshot-layout.json`, `scripts/patch-screenshot-version.py` |
+| Screenshot CI | `.github/workflows/screenshots.yaml` |
 | App metadata | `Glide/Glide-Info.plist`, `VERSION` |
 | Release/version bump | `VERSION`, `Makefile` (`bump-version`), `site/index.html` |
 | CI release | `.github/workflows/release.yaml` |
@@ -308,11 +389,14 @@ Do not use other prefixes (`cursor/`, `dev/`, personal names, etc.).
 # Daily dev loop
 make run-debug
 
+# After UI changes that affect marketing screenshots
+make screenshots
+
 # Before a release PR
 echo "X.Y.Z" > VERSION && make bump-version
 make test && make build
 
-# Tag release (after merge)
+# Tag release (after merge) — publishes GitHub Release; site download link already bumped
 git tag vX.Y.Z && git push origin vX.Y.Z
 
 # Local signed DMG (optional)

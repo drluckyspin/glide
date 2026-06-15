@@ -3,6 +3,15 @@
 This document describes the release process used by `.github/workflows/release.yaml`. Use it as a reference if you
 forget the steps or need to set up secrets.
 
+## Distribution
+
+Glide is **not** on the Mac App Store. Public releases are:
+
+1. **GitHub Releases** — CI publishes `Glide-{version}.zip` (signed, notarized DMG inside) when you push a `v*` tag.
+2. **Landing site** — `site/index.html` download button links to that release zip (URL updated by `make bump-version`).
+
+Secrets named `ASC_*` below are **App Store Connect API keys used only for Apple notarization** (`notarytool`). They are not used for Mac App Store submission.
+
 ## Triggers
 
 - **Tag push**: Push a tag matching `v*` (e.g. `v1.2.0`) to trigger a release.
@@ -14,9 +23,9 @@ forget the steps or need to set up secrets.
 | ---------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `APPLE_SIGNING_P12`          | Base64-encoded Developer ID Application certificate (.p12) | Export from Keychain Access, then `base64 -i YourCert.p12 \| pbcopy`                        |
 | `APPLE_SIGNING_P12_PASSWORD` | Password for the .p12 file                                 | Set when exporting the .p12                                                                 |
-| `ASC_KEY_ID`                 | App Store Connect API key ID (10 chars)                    | [App Store Connect → Users and Access → Keys](https://appstoreconnect.apple.com/access/api) |
-| `ASC_ISSUER_ID`              | App Store Connect issuer ID (UUID)                         | Same page as ASC_KEY_ID                                                                     |
-| `ASC_PRIVATE_KEY_B64`        | Base64-encoded .p8 private key                             | Download .p8 when creating the key, then `base64 -i AuthKey_XXX.p8 \| pbcopy`               |
+| `ASC_KEY_ID`                 | Notarization API key ID (10 chars; App Store Connect → Keys) | [App Store Connect → Users and Access → Keys](https://appstoreconnect.apple.com/access/api) |
+| `ASC_ISSUER_ID`              | Notarization issuer ID (UUID)                                | Same page as ASC_KEY_ID                                                                     |
+| `ASC_PRIVATE_KEY_B64`        | Base64-encoded .p8 private key (notarization only)           | Download .p8 when creating the key, then `base64 -i AuthKey_XXX.p8 \| pbcopy`               |
 | `GITHUB_TOKEN`               | Auto-provided by GitHub Actions                            | No setup needed                                                                             |
 
 ---
@@ -202,7 +211,6 @@ Requirements:
 1. **Developer ID Application certificate**: Create in
    [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/certificates/list). Export as
    .p12.
-2. **App Store Connect API key**: Create in [Users and Access → Keys](https://appstoreconnect.apple.com/access/api).
-   Download the .p8 file once (it can't be re-downloaded).
-3. **Notarization**: Requires an Apple Developer Program membership. Notarytool uses the App Store Connect API key for
-   authentication.
+2. **Notarization API key** (App Store Connect → Users and Access → Keys): download the `.p8` once for `notarytool`
+   authentication. This is **not** Mac App Store distribution — only notarization.
+3. **Notarization**: Requires an Apple Developer Program membership. Notarytool uses the API key above.

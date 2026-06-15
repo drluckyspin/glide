@@ -255,6 +255,7 @@ Preview locally: `make site`
 - Change signing/notarization flow without updating both `Makefile` and `.github/workflows/release.yaml`
 - Run `make release` or push tags unless the user explicitly asks
 - Create git commits or PRs unless requested
+- Create branches outside `feature/`, `fix/`, or `chore/`
 
 ### Common edit locations
 
@@ -284,6 +285,20 @@ The codebase targets modern Xcode/macOS SDKs. Notable patterns:
 2. Fork → branch → pull request
 3. Small PRs welcome for early feedback
 4. Ensure `make test` passes before requesting review
+
+### Branch names
+
+Use **only** these prefixes:
+
+| Prefix | Use for |
+| ------ | ------- |
+| `feature/` | New functionality or user-facing improvements |
+| `fix/` | Bug fixes |
+| `chore/` | Docs, tooling, refactors, version bumps, CI — no product behavior change |
+
+Format: `{prefix}/{short-kebab-description}` (e.g. `feature/add-agents-md`, `fix/status-menu-dismiss`, `chore/bump-version`).
+
+Do not use other prefixes (`cursor/`, `dev/`, personal names, etc.).
 
 ---
 

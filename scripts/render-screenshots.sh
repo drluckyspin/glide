@@ -52,6 +52,57 @@ mod.composite_menubar(root / "site/drop-down.png", output)
 PY
 }
 
+# Fail fast when rendered PNG dimensions drift from scripts/screenshot-layout.json.
+# If OnboardingView or StatusMenuView layout changes, update the layout file and the
+# matching aspect-ratio rules in site/index.html (see siteCss hints in the layout).
+verify_screenshot_sizes() {
+	python3 - "$ROOT" "$LAYOUT" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+try:
+    from PIL import Image
+except ImportError:
+    print(
+        "warning: Pillow not installed; skipping screenshot dimension verification",
+        file=sys.stderr,
+    )
+    raise SystemExit(0)
+
+root = Path(sys.argv[1])
+layout = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+errors: list[str] = []
+
+for key, entry in layout.items():
+    if not isinstance(entry, dict) or "width" not in entry or "height" not in entry:
+        continue
+    width = int(entry["width"])
+    height = int(entry["height"])
+    paths = {entry.get("docs"), entry.get("site"), entry.get("output")}
+    paths = sorted({p for p in paths if p})
+    for rel in paths:
+        path = root / rel
+        if not path.exists():
+            errors.append(f"{key}: missing {rel}")
+            continue
+        with Image.open(path) as img:
+            actual_w, actual_h = img.size
+        if actual_w != width or actual_h != height:
+            hint = entry.get("siteCss", "site/index.html aspect-ratio")
+            errors.append(
+                f"{key}: {rel} is {actual_w}x{actual_h}, expected {width}x{height} "
+                f"(update scripts/screenshot-layout.json and {hint})"
+            )
+
+if errors:
+    print("error: screenshot dimension drift detected:", file=sys.stderr)
+    for line in errors:
+        print(f"  - {line}", file=sys.stderr)
+    raise SystemExit(1)
+PY
+}
+
 VERSION="$(tr -d ' \n\r' < "$ROOT/VERSION")"
 VERSION="${VERSION#v}"
 
@@ -97,5 +148,7 @@ else
 	echo "-----------------------------------" >&2
 	python3 "$ROOT/scripts/patch-screenshot-version.py"
 fi
+
+verify_screenshot_sizes
 
 echo "Updated docs/drop-down.png, docs/onboarding.png, site/drop-down.png, site/onboarding.png, site/menubar.png"

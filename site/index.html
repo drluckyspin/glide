@@ -368,12 +368,16 @@
       .settings-section .screenshot-wrap:last-child {
         justify-content: flex-end;
       }
-      /* Wrap size matches onboarding.png (476×546) aspect ratio */
+      /* Menubar composite (site/menubar.png — see scripts/screenshot-layout.json) */
       .settings-section .screenshot-card {
         width: 350px;
         max-width: 100%;
         flex-shrink: 0;
-        aspect-ratio: 476/546;
+        aspect-ratio: 687 / 798;
+      }
+      /* Onboarding render (docs/onboarding.png — keep in sync with screenshot-layout.json) */
+      .settings-section--onboarding .screenshot-card {
+        aspect-ratio: 430 / 471;
       }
       .settings-section .screenshot-card img {
         width: 100%;
@@ -381,10 +385,6 @@
         display: block;
         object-fit: cover;
         object-position: center;
-      }
-      /* Zoom onboarding image to crop built-in padding */
-      .settings-section .screenshot-card img.onboarding-img {
-        transform: scale(1.12);
       }
       .settings-checklist {
         list-style: none;
@@ -1004,7 +1004,6 @@
               <img
                 src="onboarding.png"
                 alt="Glide one-time accessibility setup"
-                class="onboarding-img"
                 loading="lazy"
               />
             </div>

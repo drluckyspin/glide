@@ -604,8 +604,10 @@ extension AppDelegate {
     /// When launched with `--screenshot`, render the requested SwiftUI views to PNG and
     /// terminate — without starting the status item, event taps, or onboarding. This is
     /// how `make screenshots` / CI produce pixel-accurate marketing images straight from
-    /// the real app views (correct system font, spacing, and assets). No-op when the flag
-    /// is absent. Called from applicationDidFinishLaunching so AppKit/NSApp are ready.
+    /// the real app views (correct system font, spacing, and assets). Output size follows
+    /// each view's natural `fittingSize` (e.g. OnboardingView minWidth 430 → 430×471).
+    /// When dimensions change, update `scripts/screenshot-layout.json` and the matching
+    /// `aspect-ratio` rules in `site/index.html`.
     ///
     /// Usage:
     ///   Glide --screenshot [--menu <out.png>] [--onboarding <out.png>] [--version x.y.z]

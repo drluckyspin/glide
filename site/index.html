@@ -569,7 +569,26 @@
         .showcase-grid {
           grid-template-columns: 1fr;
         }
+        nav .grid { grid-template-columns: 1fr auto !important; }
+        nav .flex.justify-center { display: none; }
+        nav .flex.justify-end { min-width: unset; }
+        .mobile-free { display: none; }
+        .nav-logo { width: 36px; height: 36px; }
+
+        /* Hero title */
+        .hero-title { font-size: 2.5rem !important; }
+
+        /* Global centering for section labels & titles */
+        .section-label,
+        .section-title { text-align: center !important; display: block !important; width: max-content !important; margin-left: auto !important; margin-right: auto !important; }
+
+        /* Quick settings — hide modifier chips */
+        .mod-keys { display: none !important; }
+
+        /* Quick settings — center image */
+        .quick-settings-wrap .screenshot-wrap { justify-content: center !important; margin-left: auto !important; margin-right: auto !important; }
       }
+
 
       /* Section label */
       .section-label {
@@ -625,7 +644,7 @@
               href="#download"
               class="cta-btn text-white text-sm font-medium px-5 py-2.5 rounded-full no-underline"
             >
-              Download Free
+              Download <span class="mobile-free">Free</span>
             </a>
           </div>
         </div>
@@ -652,7 +671,7 @@
           </p>
 
           <div
-            class="fade-up delay-4 flex flex-wrap items-center justify-center gap-4 mb-6"
+            class="fade-up delay-4 hero-ctas-wrap flex flex-wrap items-center justify-center gap-4 mb-6"
           >
             <a
               href="#download"
@@ -898,7 +917,7 @@
 
       <!-- ━━ QUICK SETTINGS ━━ -->
       <section class="py-24 px-6">
-        <div class="max-w-4xl mx-auto settings-section">
+        <div class="max-w-4xl mx-auto quick-settings-wrap settings-section">
           <div>
             <span class="section-label mb-3 block">Menu bar</span>
             <h2 class="section-title mb-4">Quick settings</h2>

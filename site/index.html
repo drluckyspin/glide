@@ -587,6 +587,15 @@
 
         /* Quick settings — center image */
         .quick-settings-wrap .screenshot-wrap { justify-content: center !important; margin-left: auto !important; margin-right: auto !important; }
+
+        /* Global: center paragraph text under section titles */
+        section > div > p,
+        section > div > div > p[style*="max-width"] { text-align: center !important; margin-left: auto !important; margin-right: auto !important; }
+
+        /* Onboarding — swap order on mobile (text above image) */
+        .settings-section--onboarding { display: flex !important; flex-direction: column-reverse !important; align-items: center !important; gap: 2rem !important; }
+        .settings-section--onboarding .screenshot-wrap,
+        .settings-section--onboarding > div:first-child { width: 100% !important; justify-content: center !important; margin-left: auto !important; margin-right: auto !important; }
       }
 
 

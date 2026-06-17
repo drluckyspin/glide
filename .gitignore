@@ -66,3 +66,6 @@ playground.xcworkspace
 # Python (screenshot tooling)
 __pycache__/
 *.py[cod]
+
+# LLVM code coverage (written when running profile-instrumented builds, e.g. make screenshots)
+*.profraw

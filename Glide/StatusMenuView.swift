@@ -74,6 +74,9 @@ struct StatusMenuView: View {
     var onQuit: () -> Void
     /// When set (e.g. by the `--screenshot` render mode), shown instead of `Bundle.main` version.
     var versionOverride: String?
+    /// Screenshot/compositing export: omit effects that blur or bleed outside the card
+    /// (drop shadow, header icon glow) so corner pixels stay clean and transparent.
+    var omitDropShadow: Bool = false
 
     private static let cornerRadius: CGFloat = 14
     private static let menuWidth: CGFloat = 240
@@ -135,9 +138,15 @@ struct StatusMenuView: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            menuCardShape
-                .fill(cardColor)
-                .shadow(color: Color.black.opacity(0.35), radius: 10, x: 0, y: 4)
+            Group {
+                if omitDropShadow {
+                    menuCardShape.fill(cardColor)
+                } else {
+                    menuCardShape
+                        .fill(cardColor)
+                        .shadow(color: Color.black.opacity(0.35), radius: 10, x: 0, y: 4)
+                }
+            }
         }
         .overlay(menuCardShape.stroke(Color.white.opacity(0.08), lineWidth: 1))
         .overlay {
@@ -174,11 +183,13 @@ struct StatusMenuView: View {
             }
             Spacer()
             ZStack {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color(red: 0.32, green: 0.18, blue: 0.55))
-                    .frame(width: 24, height: 24)
-                    .blur(radius: 6)
-                    .opacity(0.9)
+                if !omitDropShadow {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color(red: 0.32, green: 0.18, blue: 0.55))
+                        .frame(width: 24, height: 24)
+                        .blur(radius: 6)
+                        .opacity(0.9)
+                }
                 Image("AppIcon-Purple")
                     .resizable()
                     .frame(width: 22, height: 22)

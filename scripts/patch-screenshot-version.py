@@ -84,34 +84,98 @@ def patch_dropdown(path: Path, version: str) -> None:
     print(f"Patched {path} -> {text}")
 
 
+def _menubar_glyph_runs(base: Image.Image) -> list[tuple[int, int]]:
+    """Contiguous x ranges of bright icon/text glyphs in the menu-bar band.
+
+    The bar is translucent over a busy wallpaper, so glyphs are isolated by their
+    near-white strokes (max channel) rather than absolute luminance.
+    """
+    y0, y1 = 42, 61
+    runs: list[tuple[int, int]] = []
+    start = None
+    for x in range(base.width):
+        bright = any(max(base.getpixel((x, y))[:3]) > 150 for y in range(y0, y1))
+        if bright and start is None:
+            start = x
+        elif not bright and start is not None:
+            if x - 1 - start >= 2:
+                runs.append((start, x - 1))
+            start = None
+    if start is not None and base.width - 1 - start >= 2:
+        runs.append((start, base.width - 1))
+    return runs
+
+
+def _status_icon_center_x(base: Image.Image) -> int:
+    """Center x of the Glide status icon: first glyph after the largest gap.
+
+    macOS separates the left menu titles (Apple, app menus) from the right status
+    items by a wide blank stretch. The Glide icon is the leftmost status item, i.e.
+    the first glyph run following that widest gap.
+    """
+    runs = _menubar_glyph_runs(base)
+    if not runs:
+        return base.width // 2
+    widest_gap = 0
+    split_idx = 0
+    for i in range(1, len(runs)):
+        gap = runs[i][0] - runs[i - 1][1]
+        if gap > widest_gap:
+            widest_gap = gap
+            split_idx = i
+    s, e = runs[split_idx]
+    return (s + e) // 2
+
+
+def _menubar_bottom_px(base: Image.Image) -> int:
+    """Row of the menu bar's bottom hairline before the desktop wallpaper.
+
+    The bar ends in a bright 1px separator immediately followed by a sharp drop
+    into the (darker) wallpaper. Detect that peak across columns that are free of
+    glyphs so clock/icon strokes don't confuse the scan.
+    """
+    cols = list(range(130, 200)) + list(range(410, 445))
+    cols = [x for x in cols if 0 <= x < base.width]
+
+    def lum(y: int) -> float:
+        return sum(sum(base.getpixel((x, y))[:3]) / 3 for x in cols) / len(cols)
+
+    best_y, best_drop = 31, 0.0
+    for y in range(40, base.height - 2):
+        drop = lum(y) - lum(y + 1)
+        if drop > best_drop:
+            best_drop = drop
+            best_y = y
+    return best_y
+
+
 def composite_menubar(dropdown: Path, output: Path) -> None:
     layout = json.loads(LAYOUT.read_text(encoding="utf-8"))
     menubar = layout["menubar"]
     base = ROOT / menubar["base"]
-    card = menubar["card"]
-    card_x = int(card["x"])
-    card_y = int(card["y"])
-    card_w = int(card["width"])
-    card_h = int(card["height"])
 
     overlay = Image.open(dropdown).convert("RGBA")
     canvas = Image.open(base).convert("RGBA")
+    overlay_w, overlay_h = overlay.size
 
-    # The base is a clean menubar capture whose card silhouette, rounded corners,
-    # drop shadow, and surrounding wallpaper are all pixel-perfect. The menu card
-    # is always the same rounded rectangle regardless of its contents, so we simply
-    # scale the freshly rendered dropdown to that footprint and stamp it over the
-    # old card. The new card fully covers the old body; its anti-aliased corners
-    # reveal the original wallpaper + contact shadow underneath, so corners and
-    # shadow match the source exactly (no synthesized shadow or wallpaper fill,
-    # which is what previously produced bright fringes at the corners).
-    scaled = overlay.resize((card_w, card_h), LANCZOS)
-    canvas.paste(scaled, (card_x, card_y), scaled)
+    icon_cx = _status_icon_center_x(canvas)
+    card_x = max(4, min(canvas.width - overlay_w - 4, icon_cx - overlay_w // 2))
+    menubar_bottom = _menubar_bottom_px(canvas)
+    # One pixel below the menu bar, matching AppKit popover placement.
+    card_y = menubar_bottom + 1
+
+    # Paste the dropdown at 1× — upscaling blurs the top edge and misaligns the
+    # card against the menubar. layout card.* documents the last composite only.
+    canvas.paste(overlay, (card_x, card_y), overlay)
     canvas.save(output)
-    print(f"Composited {output} (card {card_w}x{card_h} at {card_x},{card_y})")
+    print(
+        f"Composited {output} ({overlay_w}x{overlay_h} at {card_x},{card_y}; "
+        f"icon cx={icon_cx}, menubar bottom={menubar_bottom})"
+    )
 
 
 def main() -> None:
+    skip_composite = "--skip-composite" in sys.argv
     version = read_version()
     dropdown_paths = [ROOT / "docs/drop-down.png", ROOT / "site/drop-down.png"]
     for path in dropdown_paths:
@@ -119,7 +183,8 @@ def main() -> None:
             raise SystemExit(f"Missing {path}")
         patch_dropdown(path, version)
 
-    composite_menubar(ROOT / "site/drop-down.png", ROOT / "site/menubar.png")
+    if not skip_composite:
+        composite_menubar(ROOT / "site/drop-down.png", ROOT / "site/menubar.png")
 
 
 if __name__ == "__main__":

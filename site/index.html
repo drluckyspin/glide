@@ -315,11 +315,12 @@
 
       .kbd {
         font-family: "Space Mono", monospace;
-        font-size: 0.8rem;
+        font-size: 0.76rem;
+        line-height: 1.35;
         background: rgba(124, 58, 237, 0.15);
         border: 1px solid rgba(124, 58, 237, 0.3);
-        border-radius: 6px;
-        padding: 3px 8px;
+        border-radius: 5px;
+        padding: 2px 6px;
         color: var(--purple-light);
         white-space: nowrap;
       }
@@ -568,7 +569,44 @@
         .showcase-grid {
           grid-template-columns: 1fr;
         }
+        nav .grid { grid-template-columns: 1fr auto !important; }
+        nav .flex.justify-center { display: none; }
+        nav .flex.justify-end { min-width: unset; }
+        .desktop-only { display: none; }
+        .nav-logo { width: 36px; height: 36px; }
+
+        /* Hero title */
+        .hero-title { font-size: 2.5rem !important; }
+
+        /* Hero CTAs — equal width on mobile */
+        .hero-ctas-wrap { flex-direction: column !important; align-items: center !important; }
+        .hero-ctas-wrap a { width: 260px; justify-content: center; text-align: center; }
+
+        /* Global centering for section labels & titles */
+        .section-label,
+        .section-title { text-align: center !important; display: block !important; width: max-content !important; margin-left: auto !important; margin-right: auto !important; }
+
+        /* Quick settings — hide modifier chips */
+        .mod-keys { display: none !important; }
+
+        /* Quick settings — center image */
+        .quick-settings-wrap .screenshot-wrap { justify-content: center !important; margin-left: auto !important; margin-right: auto !important; }
+
+        /* Global: center paragraph text under section titles */
+        section > div > p,
+        section > div > div > p[style*="max-width"] { text-align: center !important; margin-left: auto !important; margin-right: auto !important; }
+
+        /* Onboarding — swap order on mobile (text above image) */
+        .settings-section--onboarding { display: flex !important; flex-direction: column-reverse !important; align-items: center !important; gap: 2rem !important; }
+        .settings-section--onboarding .screenshot-wrap,
+        .settings-section--onboarding > div:first-child { width: 100% !important; justify-content: center !important; margin-left: auto !important; margin-right: auto !important; }
+
+        /* Footer — hide logo, show icon links centered above copyright */
+        footer > div { flex-direction: column !important; align-items: center !important; gap: 0.75rem !important; }
+        footer > div > .footer-brand { display: none !important; }
+        footer > div > .footer-copy { order: 1; }
       }
+
 
       /* Section label */
       .section-label {
@@ -624,7 +662,7 @@
               href="#download"
               class="cta-btn text-white text-sm font-medium px-5 py-2.5 rounded-full no-underline"
             >
-              Download Free
+              Download <span class="desktop-only">Free</span>
             </a>
           </div>
         </div>
@@ -651,7 +689,7 @@
           </p>
 
           <div
-            class="fade-up delay-4 flex flex-wrap items-center justify-center gap-4 mb-6"
+            class="fade-up delay-4 hero-ctas-wrap flex flex-wrap items-center justify-center gap-4 mb-6"
           >
             <a
               href="#download"
@@ -723,7 +761,7 @@
                 style="color: rgba(233, 213, 255, 0.6); line-height: 1.7"
               >
                 Press your chosen modifier key combo — like
-                <span class="kbd">Cmd</span> + <span class="kbd">Shift</span> —
+                <span class="kbd">Command</span> + <span class="kbd">Shift</span> —
                 to activate Glide.
               </p>
             </div>
@@ -747,7 +785,7 @@
                 class="text-sm"
                 style="color: rgba(233, 213, 255, 0.6); line-height: 1.7"
               >
-                Right-click and drag near any corner or edge to resize — watch
+                <span class="kbd">Right-click</span> and drag near any corner or edge to resize — watch
                 your window resize as you go.
               </p>
             </div>
@@ -759,7 +797,7 @@
       <!-- <section class="pb-24 px-6">
     <div class="max-w-4xl mx-auto screenshot-wrap">
       <div class="screenshot-card">
-        <img src="glide-drag.png" alt="Glide in action — Cmd + Shift to move and resize" loading="lazy">
+        <img src="glide-drag.png" alt="Glide in action — Command + Shift to move and resize" loading="lazy">
       </div>
     </div>
   </section> -->
@@ -814,7 +852,7 @@
                 class="text-sm"
                 style="color: rgba(233, 213, 255, 0.55); line-height: 1.6"
               >
-                Right-click + drag to watch your window resize. Grow or shrink
+                <span class="kbd">Right-click</span> + drag to watch your window resize. Grow or shrink
                 from anywhere, in any direction.
               </p>
             </div>
@@ -849,8 +887,9 @@
                 class="text-sm"
                 style="color: rgba(233, 213, 255, 0.55); line-height: 1.6"
               >
-                Pick any combination of Cmd, Shift, Ctrl, or Alt to trigger
-                Glide.
+                Pick any combination of <span class="kbd">Command</span>,
+                <span class="kbd">Shift</span>, <span class="kbd">Control</span>, or
+                <span class="kbd">Option</span> to trigger Glide.
               </p>
             </div>
 
@@ -896,7 +935,7 @@
 
       <!-- ━━ QUICK SETTINGS ━━ -->
       <section class="py-24 px-6">
-        <div class="max-w-4xl mx-auto settings-section">
+        <div class="max-w-4xl mx-auto quick-settings-wrap settings-section">
           <div>
             <span class="section-label mb-3 block">Menu bar</span>
             <h2 class="section-title mb-4">Quick settings</h2>
@@ -908,9 +947,8 @@
                 max-width: 480px;
               "
             >
-              Access all controls from your menu bar. Enable or disable Glide,
-              customize modifier keys, toggle hover move, and more. Everything
-              is just a click away.
+              Access all controls from your menu bar. Toggle Glide and Resize behaviors,
+              configure modifier keys, or disable completely. Everything is just a click away.
             </p>
             <ul class="settings-checklist">
               <li>
@@ -925,27 +963,13 @@
                 >
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
-                Toggle Glide on/off globally
-              </li>
-              <li>
-                <svg
-                  class="check"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-                Choose modifier keys
+                Choose activation keys
                 <span class="mod-keys"
-                  ><span class="mod-key">Alt</span
+                  ><span class="mod-key">Option</span
                   ><span class="mod-key-plus">+</span
-                  ><span class="mod-key">Cmd</span
+                  ><span class="mod-key">Command</span
                   ><span class="mod-key-plus">+</span
-                  ><span class="mod-key">Ctrl</span
+                  ><span class="mod-key">Control</span
                   ><span class="mod-key-plus">+</span
                   ><span class="mod-key">Shift</span></span
                 >
@@ -962,7 +986,35 @@
                 >
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
-                Enable/disable hover move
+                Glide — hover to move
+              </li>
+              <li>
+                <svg
+                  class="check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                Resize — right-click drag
+              </li>
+              <li>
+                <svg
+                  class="check"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+                Disable — turn Glide off globally
               </li>
               <li>
                 <svg
@@ -984,7 +1036,7 @@
             <div class="screenshot-card">
               <img
                 src="menubar.png"
-                alt="Glide quick settings in the menu bar"
+                alt="Glide menu bar dropdown — activation keys and window actions"
                 loading="lazy"
               />
             </div>
@@ -1003,7 +1055,7 @@
             <div class="screenshot-card">
               <img
                 src="onboarding.png"
-                alt="Glide one-time accessibility setup"
+                alt="Glide one-time setup"
                 loading="lazy"
               />
             </div>
@@ -1235,16 +1287,20 @@
             <span class="text-sm">Glide</span>
           </a>
           <p
-            class="text-sm order-first sm:order-none"
+            class="footer-copy text-sm order-last sm:order-none"
             style="color: rgba(233, 213, 255, 0.4)"
           >
             © 2026 Bluuity. All rights reserved
           </p>
           <div
-            class="flex items-center gap-6 text-sm flex-1 justify-center sm:justify-end"
+            class="footer-links flex items-center gap-6 text-sm flex-1 justify-center sm:justify-end"
           >
-            <a href="mailto:hello@glideapp.app">Support</a>
-            <a href="https://github.com/drluckyspin/glide">GitHub</a>
+            <a href="mailto:hello@glideapp.app" aria-label="Support">
+              <svg aria-hidden="true" focusable="false" class="footer-link-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
+            </a>
+            <a href="https://github.com/drluckyspin/glide" aria-label="GitHub" rel="noopener noreferrer">
+              <svg aria-hidden="true" focusable="false" class="footer-link-icon" width="20" height="20" viewBox="0 0 98 96" fill="currentColor"><path fill-rule="evenodd" clip-rule="evenodd" d="M48.854 0C21.839 0 0 22 0 49.217c0 21.756 13.993 40.172 33.405 46.69 2.427.49 3.316-1.059 3.316-2.362 0-1.141-.08-5.052-.08-9.127-13.59 2.934-16.42-5.867-16.42-5.867-2.184-5.704-5.42-7.17-5.42-7.17-4.448-3.015.324-3.015.324-3.015 4.934.326 7.523 5.052 7.523 5.052 4.367 7.496 11.404 5.378 14.235 4.074.404-3.178 1.699-5.378 3.074-6.6-10.839-1.141-22.243-5.378-22.243-24.283 0-5.378 1.94-9.778 5.014-13.2-.485-1.222-2.184-6.275.486-13.038 0 0 4.125-1.304 13.426 5.052a46.97 46.97 0 0 1 12.214-1.63c4.125 0 8.33.571 12.213 1.63 9.302-6.356 13.427-5.052 13.427-5.052 2.67 6.763.97 11.816.485 13.038 3.155 3.422 5.015 7.822 5.015 13.2 0 18.905-11.404 23.06-22.324 24.283 1.78 1.548 3.316 4.481 3.316 9.126 0 6.6-.08 11.897-.08 13.526 0 1.304.89 2.853 3.316 2.364 19.412-6.52 33.405-24.935 33.405-46.691C97.707 22 75.788 0 48.854 0z"/></svg>
+            </a>
           </div>
         </div>
       </footer>

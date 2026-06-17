@@ -52,6 +52,46 @@ mod.composite_menubar(root / "site/drop-down.png", output)
 PY
 }
 
+# Downscale Retina (2×) renders to the 1× sizes in screenshot-layout.json.
+normalize_screenshot_sizes() {
+	python3 - "$ROOT" "$LAYOUT" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+try:
+    from PIL import Image
+except ImportError:
+    raise SystemExit(0)
+
+try:
+    resample = Image.Resampling.LANCZOS
+except AttributeError:
+    resample = Image.LANCZOS
+
+root = Path(sys.argv[1])
+layout = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
+
+for key, entry in layout.items():
+    if not isinstance(entry, dict) or "width" not in entry or "height" not in entry:
+        continue
+    expected = (int(entry["width"]), int(entry["height"]))
+    paths = {entry.get("docs"), entry.get("site"), entry.get("output")}
+    for rel in sorted(p for p in paths if p):
+        path = root / rel
+        if not path.exists():
+            continue
+        with Image.open(path) as img:
+            actual = img.size
+        if actual == expected:
+            continue
+        if actual == (expected[0] * 2, expected[1] * 2):
+            with Image.open(path) as img:
+                img.convert("RGBA").resize(expected, resample).save(path)
+            print(f"Normalized {rel} from {actual[0]}x{actual[1]} to {expected[0]}x{expected[1]}")
+PY
+}
+
 # Fail fast when rendered PNG dimensions drift from scripts/screenshot-layout.json.
 # If OnboardingView or StatusMenuView layout changes, update the layout file and the
 # matching aspect-ratio rules in site/index.html (see siteCss hints in the layout).
@@ -140,15 +180,20 @@ if command -v xcodebuild >/dev/null 2>&1 && xcodebuild build \
 
 	cp "$ROOT/docs/drop-down.png" "$ROOT/site/drop-down.png"
 	cp "$ROOT/docs/onboarding.png" "$ROOT/site/onboarding.png"
-	composite_menubar
 else
 	echo "xcodebuild app render unavailable; using PNG patch fallback." >&2
 	echo "----- app build output (tail) -----" >&2
 	tail -n 60 "$BUILD_LOG" >&2 2>/dev/null || true
 	echo "-----------------------------------" >&2
-	python3 "$ROOT/scripts/patch-screenshot-version.py"
+	python3 "$ROOT/scripts/patch-screenshot-version.py" --skip-composite
 fi
 
+normalize_screenshot_sizes
+composite_menubar
+
 verify_screenshot_sizes
+
+# Profile-instrumented xcodebuild runs write default.profraw to CWD when Glide exits.
+rm -f "$ROOT/default.profraw"
 
 echo "Updated docs/drop-down.png, docs/onboarding.png, site/drop-down.png, site/onboarding.png, site/menubar.png"

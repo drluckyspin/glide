@@ -611,6 +611,7 @@ extension AppDelegate {
     ///
     /// Usage:
     ///   Glide --screenshot [--menu <out.png>] [--onboarding <out.png>] [--version x.y.z]
+    @MainActor
     static func runScreenshotModeIfRequested() {
         let args = ProcessInfo.processInfo.arguments
         guard args.contains("--screenshot") else { return }
@@ -638,7 +639,7 @@ extension AppDelegate {
                 onReset: {}
             )
             renderViewToPNG(
-                AnyView(StatusMenuView(model: model, onQuit: {}, versionOverride: version)),
+                AnyView(StatusMenuView(model: model, onQuit: {}, versionOverride: version, omitDropShadow: true)),
                 to: menuPath
             )
         }
@@ -653,35 +654,28 @@ extension AppDelegate {
         exit(0)
     }
 
+    @MainActor
     private static func renderViewToPNG(_ view: AnyView, to path: String) {
-        let hosting = NSHostingView(rootView: view)
-        hosting.layoutSubtreeIfNeeded()
+        // ImageRenderer at scale 1.0 produces 1× pixel output. NSHostingView +
+        // bitmapImageRepForCachingDisplay follows the main screen backing scale (2× on
+        // Retina), which drifts from scripts/screenshot-layout.json and site CSS.
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = 1.0
+        renderer.isOpaque = false
 
-        let size = hosting.fittingSize
-        guard size.width > 0, size.height > 0 else {
-            screenshotFail("invalid render size for \(path)")
+        guard let cgImage = renderer.cgImage else {
+            screenshotFail("could not render image for \(path)")
         }
-        hosting.setFrameSize(size)
-        hosting.layoutSubtreeIfNeeded()
 
-        guard let rep = hosting.bitmapImageRepForCachingDisplay(in: hosting.bounds) else {
-            screenshotFail("could not create bitmap for \(path)")
-        }
-        hosting.cacheDisplay(in: hosting.bounds, to: rep)
-
-        // Round-trip through TIFF so the PNG carries a well-formed color profile.
-        let image = NSImage(size: size)
-        image.addRepresentation(rep)
-        guard let tiff = image.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiff),
-              let png = bitmap.representation(using: .png, properties: [:]) else {
+        let rep = NSBitmapImageRep(cgImage: cgImage)
+        guard let png = rep.representation(using: .png, properties: [:]) else {
             screenshotFail("could not encode PNG for \(path)")
         }
 
         do {
             try png.write(to: URL(fileURLWithPath: path))
             FileHandle.standardError.write(
-                Data("Rendered \(path) (\(Int(size.width))x\(Int(size.height)))\n".utf8)
+                Data("Rendered \(path) (\(cgImage.width)x\(cgImage.height))\n".utf8)
             )
         } catch {
             screenshotFail("could not write \(path): \(error)")

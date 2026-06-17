@@ -3,7 +3,7 @@
     "docs": "docs/drop-down.png",
     "site": "site/drop-down.png",
     "width": 240,
-    "height": 421
+    "height": 419
   },
   "onboarding": {
     "docs": "docs/onboarding.png",
@@ -19,10 +19,10 @@
     "height": 798,
     "siteCss": "site/index.html — .settings-section .screenshot-card aspect-ratio",
     "card": {
-      "x": 40,
-      "y": 82,
-      "width": 340,
-      "height": 596
+      "x": 96,
+      "y": 72,
+      "width": 240,
+      "height": 419
     }
   }
 }

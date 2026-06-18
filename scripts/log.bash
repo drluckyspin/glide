@@ -125,8 +125,8 @@ log_pipe_dim() {
 
 # -----------------------------------------------------------------------------------------------------------
 # Function: log_run_dim
-# Description: Run a command; pipe combined stdout/stderr through log_pipe_dim.
-#              Caller should use: set -o pipefail; log_run_dim cmd ...
+# Description: Run a command; pipe combined stdout/stderr through log_pipe_dim. Returns the command's exit status.
+#              Usage: log_run_dim cmd ...
 # -----------------------------------------------------------------------------------------------------------
 log_run_dim() {
     "$@" 2>&1 | log_pipe_dim

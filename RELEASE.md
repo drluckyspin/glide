@@ -133,11 +133,18 @@ release zip is published — otherwise visitors get a 404.
 1. **Before tagging**: set `VERSION` and run `make bump-version`. This syncs the version into `Glide/Glide-Info.plist`
    and rewrites the download URL and `data-vmtrc-version` in `site/index.html` to:
    `https://github.com/drluckyspin/glide/releases/download/v{version}/Glide-{version}.zip`
+
+   ```bash
+   echo "1.3.2" > VERSION && make bump-version
+   ```
+
+   `make bump-version` reads the `VERSION` file only — it does not take the version as a make argument.
 2. **Refresh screenshots** (macOS only): run `make screenshots`. This rebuilds `docs/drop-down.png`,
-   `docs/onboarding.png`, the matching `site/` copies, and `site/menubar.png` (the freshly rendered dropdown is scaled
-   to the `card` footprint in `scripts/screenshot-layout.json` and stamped onto the clean menubar capture
-   `site/menubar-base.png`, reusing its wallpaper, rounded corners, and drop shadow). `site/glide-hero.png` still needs
-   a manual capture if you want that updated.
+   `docs/onboarding.png`, the matching `site/` copies, and `site/menubar.png`. The app renders views at **1×** via
+   `ImageRenderer` (`Glide --screenshot`). The pipeline normalizes accidental Retina 2× PNGs, then composites the
+   dropdown onto `site/menubar-base.png` at native size — auto-aligned under the Glide status icon (see
+   `composite_menubar` in `scripts/patch-screenshot-version.py`). `site/glide-hero.png` still needs a manual capture if
+   you want that updated.
 3. **After the GitHub release exists**: open the site locally (`make site`) and confirm the Download button resolves to
    the new `.zip` asset.
 4. **Site deploy**: merging to `main` automatically deploys `site/` to production via Vercel. No manual deploy step —
@@ -147,11 +154,13 @@ release zip is published — otherwise visitors get a 404.
 > `site/index.html` is committed and merged to `main`. Step 2 keeps README and site menu screenshots in sync with the
 > release version.
 
-The menu card is always the same rounded rectangle, so compositing just stamps the current dropdown over the card region
-of `site/menubar-base.png`; the corners and shadow come from that base. If the dropdown moves or resizes, update the
-`card` rectangle in `scripts/screenshot-layout.json`. To refresh the desktop/menubar background, drop a new clean
-capture at `site/menubar-source.png` and run `python3 scripts/prepare-menubar-base.py` to regenerate
-`site/menubar-base.png`.
+**Menubar base capture:** save a clean desktop screenshot (menu bar + wallpaper) as `site/menubar-source.png`, then run
+`python3 scripts/prepare-menubar-base.py` to copy it to `site/menubar-base.png`. Re-run `make screenshots` to composite
+the current dropdown onto that base. The `menubar.card` rectangle in `scripts/screenshot-layout.json` records the last
+composite placement for reference; paste position is detected from the base image (status icon + menubar bottom edge).
+
+**Canonical PNG sizes** (must match `scripts/screenshot-layout.json` and site `aspect-ratio` CSS): dropdown **240×419**,
+onboarding **430×471**, menubar composite **687×798**.
 
 ---
 
@@ -167,6 +176,10 @@ make bump-version        # sync VERSION → plist + site download URL
 make screenshots         # refresh docs/ and site/ PNGs (macOS only)
 make release             # archive → codesign → notarize app → DMG → notarize DMG
 ```
+
+**Local `make build` / `make install`** (separate from `make release`): the Xcode **Release** configuration signs with
+**Developer ID Application** (manual; sandbox off). **Debug** is ad-hoc — use `make run-debug` for everyday development
+without a distribution cert. CI release still archives with `CODE_SIGNING_ALLOWED=NO` and re-signs in the workflow.
 
 Output is a signed, notarized, stapled `Glide-<version>.dmg` in the repo root. Local release does **not** create a
 GitHub release or the `.zip` wrapper — those are CI-only steps (see above). Upload the DMG manually, or push a `v*` tag

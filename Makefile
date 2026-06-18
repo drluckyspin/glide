@@ -25,6 +25,8 @@
 #   run-debug               : Build and run the app (Debug, no provisioning profile)
 #   run-onboarding          : Build (Debug) and run with onboarding dialog
 #
+# xcodebuild output: indented dim log by default (-quiet). VERBOSE=true for full log.
+#
 # -----------------------------------------------------------------------------------------------------------
 
 # Default target
@@ -164,7 +166,7 @@ screenshots: ## Regenerate docs/ and site/ PNGs (drop-down, onboarding, menubar)
 build: ## Build (Release configuration)
 	@$(LOGGER) log_separator
 	@$(LOGGER) log_info "Building Glide"
-	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration $(CONFIG) -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)" build
+	@set -o pipefail; $(LOGGER) log_run_xcodebuild xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration $(CONFIG) -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)" build
 
 # -----------------------------------------------------------------------------------------------------------
 # Build (Debug configuration)
@@ -172,7 +174,7 @@ build: ## Build (Release configuration)
 build-debug: ## Build (Debug configuration)
 	@$(LOGGER) log_separator
 	@$(LOGGER) log_info "Building Glide (Debug configuration)"
-	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)" build
+	@set -o pipefail; $(LOGGER) log_run_xcodebuild xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)" build
 	@$(LOGGER) log_success "Build complete"
 
 # -----------------------------------------------------------------------------------------------------------
@@ -182,11 +184,11 @@ clean: ## Clean build artifacts
 	@$(LOGGER) log_separator
 	@$(LOGGER) log_info "Cleaning build artifacts"
 	@$(LOGGER) log_indent log_dim "Removing build output..."
-	xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration $(CONFIG) -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)" clean
-	rm -rf "$(BUILD_OUTPUT_DIR)"
+	@set -o pipefail; $(LOGGER) log_run_xcodebuild xcodebuild -project $(PROJECT) -scheme $(SCHEME) -configuration $(CONFIG) -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)" clean
+	@rm -rf "$(BUILD_OUTPUT_DIR)"
 	@$(LOGGER) log_indent log_dim "Removing DMG files..."
-	rm -f Glide-$(VERSION_DEV).dmg Glide-$(VERSION_RELEASE).dmg
-	rm -f rw.*.Glide-*.dmg
+	@rm -f Glide-$(VERSION_DEV).dmg Glide-$(VERSION_RELEASE).dmg
+	@rm -f rw.*.Glide-*.dmg
 	@$(LOGGER) log_success "Clean complete"
 
 # -----------------------------------------------------------------------------------------------------------
@@ -196,7 +198,7 @@ install: build ## Build and install to ~/Applications
 	@$(LOGGER) log_separator
 	@$(LOGGER) log_info "Installing Glide to /Applications"
 	@if [ -d "/Applications/Glide.app" ]; then \
-		printf "Glide is already installed in /Applications. Replace it? [y/N] "; \
+		printf "  Glide is already installed in /Applications. Replace it? [y/N] "; \
 		read answer; \
 		case $$answer in \
 			y|Y|yes|YES) \
@@ -205,7 +207,7 @@ install: build ## Build and install to ~/Applications
 				$(LOGGER) log_success "Installed Glide to /Applications/Glide.app"; \
 				;; \
 			*) \
-				$(LOGGER) log_dim "Install canceled."; \
+				$(LOGGER) log_warning "Install canceled."; \
 				;; \
 		esac; \
 	else \
@@ -397,5 +399,5 @@ run-onboarding: build-debug ## Build (Debug) and run Glide with onboarding dialo
 test: ## Run tests (Debug configuration)
 	@$(LOGGER) log_separator
 	@$(LOGGER) log_info "Running tests"
-	xcodebuild test -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)"
+	@set -o pipefail; $(LOGGER) log_run_xcodebuild xcodebuild test -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)"
 	@$(LOGGER) log_success "Tests complete"

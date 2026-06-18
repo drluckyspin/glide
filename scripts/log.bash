@@ -2,7 +2,7 @@
 
 # -----------------------------------------------------------------------------------------------------------
 # Script Name: log.bash
-# Version: 1.8
+# Version: 1.9
 #
 # Description: A collection of logging utility functions for bash scripts that
 #              provide colored and formatted console output.
@@ -16,7 +16,10 @@
 #   log_success        : Green checkmark with dimmed green text for success messages
 #   log_error          : Red X symbol with dimmed red text for error messages
 #   log_warning        : Yellow triangle with dimmed yellow text for warnings
-#   log_indent          : Indent (2 spaces) and call any log function (usage: log_indent log_success "message")
+#   log_indent         : Indent (2 spaces) and call any log function (usage: log_indent log_success "message")
+#   log_pipe_dim       : Stream stdin with 2-space indent and dim styling
+#   log_run_dim        : Run a command; pipe combined stdout/stderr through log_pipe_dim
+#   log_run_xcodebuild : log_run_dim for xcodebuild (-quiet unless VERBOSE=true)
 #   log_separator      : Print a separator line across terminal width
 #   log_centered       : Print centered text
 #   log_verbose        : Log message only if VERBOSE environment variable is true
@@ -28,7 +31,7 @@
 # -----------------------------------------------------------------------------------------------------------
 # Global variables
 # -----------------------------------------------------------------------------------------------------------
-VERBOSE=false
+: "${VERBOSE:=false}"
 
 # -----------------------------------------------------------------------------------------------------------
 # Code Red ANSI color codes
@@ -108,6 +111,47 @@ log_indent() {
     shift
     printf "  "
     $log_func "$@"
+}
+
+# -----------------------------------------------------------------------------------------------------------
+# Function: log_pipe_dim
+# Description: Stream stdin with 2-space indent and dim styling (matches log_indent + log_dim).
+# -----------------------------------------------------------------------------------------------------------
+log_pipe_dim() {
+    while IFS= read -r line || [ -n "$line" ]; do
+        printf "  ${DIM}${WHITE}%s${RESET}\n" "$line"
+    done
+}
+
+# -----------------------------------------------------------------------------------------------------------
+# Function: log_run_dim
+# Description: Run a command; pipe combined stdout/stderr through log_pipe_dim.
+#              Caller should use: set -o pipefail; log_run_dim cmd ...
+# -----------------------------------------------------------------------------------------------------------
+log_run_dim() {
+    "$@" 2>&1 | log_pipe_dim
+    return "${PIPESTATUS[0]}"
+}
+
+# -----------------------------------------------------------------------------------------------------------
+# Function: log_run_xcodebuild
+# Description: Run xcodebuild with dim indented output. Passes -quiet unless VERBOSE=true.
+#              Usage: set -o pipefail; log_run_xcodebuild xcodebuild ... build
+# -----------------------------------------------------------------------------------------------------------
+log_run_xcodebuild() {
+    if [[ "${VERBOSE:-false}" == "true" ]]; then
+        log_run_dim "$@"
+        return $?
+    fi
+
+    # xcodebuild test puts the action first: xcodebuild test -project ...
+    if [[ "$1" == "xcodebuild" && "$2" == "test" ]]; then
+        log_run_dim xcodebuild test -quiet "${@:3}"
+    else
+        local action="${@: -1}"
+        local args=("${@:1:$#-1}")
+        log_run_dim "${args[@]}" -quiet "$action"
+    fi
 }
 
 # -----------------------------------------------------------------------------------------------------------

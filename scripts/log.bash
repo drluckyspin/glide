@@ -136,7 +136,7 @@ log_run_dim() {
 # -----------------------------------------------------------------------------------------------------------
 # Function: log_run_xcodebuild
 # Description: Run xcodebuild with dim indented output. Passes -quiet unless VERBOSE=true.
-#              Usage: set -o pipefail; log_run_xcodebuild xcodebuild ... build
+#              Usage: log_run_xcodebuild xcodebuild ... build
 # -----------------------------------------------------------------------------------------------------------
 log_run_xcodebuild() {
     if [[ "${VERBOSE:-false}" == "true" ]]; then

@@ -89,7 +89,7 @@ Without it, the app shows onboarding and polls until permission is granted. `NSA
 
 ## Architecture
 
-```
+```sh
 main.swift
   └── NSApplicationMain → AppDelegate
 
@@ -102,7 +102,8 @@ AppDelegate.swift          ← lifecycle, CGEvent tap, menu panel, onboarding, -
 
 GlideTests/                ← unit tests (Preferences, WindowGlide, launch smoke)
 site/                      ← static landing page (Vercel deploy on merge to main)
-scripts/                   ← render-screenshots.sh, screenshot-layout.json, log.bash, patch-screenshot-version.py
+scripts/                   ← render-screenshots.sh, screenshot-layout.json, log.bash,
+                             patch-screenshot-version.py, prepare-menubar-base.py
 .github/workflows/         ← release.yaml (signed DMG), screenshots.yaml (PNG refresh CI)
 ```
 
@@ -129,9 +130,12 @@ Glide --screenshot [--menu <out.png>] [--onboarding <out.png>] [--version x.y.z]
 ```
 
 - Skips status item, event tap, and normal onboarding flow (`awakeFromNib` early-returns in screenshot mode).
-- Output size follows each view's natural `fittingSize` (e.g. onboarding ≈ 430×471).
-- When dimensions change, update `scripts/screenshot-layout.json` **and** matching `aspect-ratio` rules in
-  `site/index.html`.
+- Renders with SwiftUI **`ImageRenderer` at `scale = 1.0`** (1× pixels). Avoids Retina 2× drift from `NSHostingView` +
+  `bitmapImageRepForCachingDisplay`.
+- Menu screenshot uses `omitDropShadow: true` on `StatusMenuView` (no card shadow or header icon glow — live menu
+  unchanged).
+- Output size follows each view's natural layout (dropdown **240×419**, onboarding **430×471**). When dimensions change,
+  update `scripts/screenshot-layout.json` **and** matching `aspect-ratio` rules in `site/index.html`.
 
 ### UI pattern
 
@@ -160,6 +164,7 @@ with global/local click monitors to dismiss on outside click — mimicking a nat
 | Xcode                     | `LastUpgradeCheck` 2630; SDK notes reference Xcode 26 APIs (e.g. `CGEventMask` bit shift)                 |
 | App packages              | **None** — no SwiftPM, CocoaPods, or Carthage in the Glide target                                         |
 | Build system              | Xcode project (`Glide.xcodeproj`) + `Makefile` wrappers                                                   |
+| Code signing (local)      | **Release:** Developer ID Application, manual, sandbox **off**. **Debug:** ad-hoc (`-`), sandbox **off**. |
 | Packaging tools           | Homebrew `create-dmg` (DMG creation)                                                                      |
 | Dev tooling (not shipped) | Python 3 + Pillow (`patch-screenshot-version.py`, screenshot dimension verify in `render-screenshots.sh`) |
 
@@ -179,11 +184,14 @@ make run-debug      # Build (Debug) and launch
 make run-onboarding # Debug build with -force-onboarding -translocation
 make test           # xcodebuild test (Debug)
 make clean          # Remove build/ and DMG artifacts
-make install        # Build and copy to /Applications (prompts if exists)
+make install        # Build (Release) and copy to /Applications (prompts if exists)
 make dev-package    # Unsigned DMG tagged "dev" for local testing
 make screenshots    # Regenerate docs/ + site/ PNGs from VERSION (macOS + Xcode)
 make site           # Open site/index.html in browser
 ```
+
+`make build`, `make build-debug`, `make clean`, and `make test` pipe xcodebuild through indented dim logging (`-quiet`
+by default). Use `VERBOSE=true make build` for the full xcodebuild log.
 
 First-time Xcode setup: `xcodebuild -runFirstLaunch`
 
@@ -204,35 +212,44 @@ make screenshots    # macOS only
 
 **What it does** (`scripts/render-screenshots.sh`):
 
-1. Builds Glide with `xcodebuild` (unsigned)
-2. Runs `Glide --screenshot` to write `docs/drop-down.png` and `docs/onboarding.png`
+1. Builds Glide with `xcodebuild` (`CODE_SIGNING_ALLOWED=NO`)
+2. Runs `Glide --screenshot` to write `docs/drop-down.png` and `docs/onboarding.png` (1× via `ImageRenderer`)
 3. Copies PNGs to `site/`
-4. Composites `site/menubar.png` from `site/menubar-base.png` + dropdown (Pillow)
-5. Verifies all PNG dimensions against `scripts/screenshot-layout.json` (fails on drift)
+4. **`normalize_screenshot_sizes`** — downscales exact 2× outputs if a Retina fallback occurs
+5. Composites `site/menubar.png` from `site/menubar-base.png` + dropdown (Pillow; auto-aligns under the Glide status
+   icon at 1× — see `composite_menubar` in `patch-screenshot-version.py`)
+6. Verifies all PNG dimensions against `scripts/screenshot-layout.json` (fails on drift)
+7. Removes `default.profraw` if an instrumented build wrote one (gitignored)
 
-**Linux/CI without Xcode:** falls back to `scripts/patch-screenshot-version.py` (patches version text in existing PNGs
-only).
+**Linux/CI without Xcode:** falls back to `scripts/patch-screenshot-version.py` (`--skip-composite` on the fallback
+path; patches version text in existing PNGs only).
 
 ### Canonical dimensions (`scripts/screenshot-layout.json`)
 
 | Asset             | Size    | Site CSS                                         |
 | ----------------- | ------- | ------------------------------------------------ |
-| Dropdown          | 240×421 | (inline in composite)                            |
+| Dropdown          | 240×419 | (inline in composite)                            |
 | Onboarding        | 430×471 | `.settings-section--onboarding .screenshot-card` |
 | Menubar composite | 687×798 | `.settings-section .screenshot-card`             |
+
+`menubar.card` in the JSON documents the **last composite** placement (auto-detected from `menubar-base.png`);
+compositing does not read fixed `x`/`y` for paste position.
 
 If a view layout change alters rendered PNG size: update the JSON, re-run `make screenshots`, and update the matching
 `aspect-ratio` in `site/index.html`.
 
-**Manual assets:** `site/glide-hero.png` (full-desktop capture) and `site/menubar-base.png` (wallpaper base for
-compositing) are updated by hand when the desktop/menubar scene changes.
+**Manual assets:**
+
+- `site/glide-hero.png` — full-desktop capture (updated by hand when the hero scene changes)
+- `site/menubar-source.png` → `python3 scripts/prepare-menubar-base.py` → `site/menubar-base.png` (clean menubar +
+  wallpaper capture used as the compositing canvas)
 
 ### CI (`.github/workflows/screenshots.yaml`)
 
 | Job          | When                               | Purpose                                                  |
 | ------------ | ---------------------------------- | -------------------------------------------------------- |
 | `render`     | PR + push to `main` (path filters) | Build, render, verify dimensions (read-only)             |
-| `propose-pr` | push to `main` + manual dispatch  | Open a PR with refreshed PNGs (write; never runs on PRs) |
+| `propose-pr` | push to `main` + manual dispatch   | Open a PR with refreshed PNGs (write; never runs on PRs) |
 
 ---
 
@@ -266,8 +283,8 @@ Full details: [`RELEASE.md`](RELEASE.md). Summary for agents:
 | `Glide/Glide-Info.plist` | `CFBundleShortVersionString` + `CFBundleVersion` — synced by `make bump-version` |
 | `site/index.html`        | Download URL + `data-vmtrc-version` — synced by `make bump-version`              |
 
-**Always run `make bump-version` after editing `VERSION`.** Bumping the plist alone does not update the website download
-link.
+**Always run `make bump-version` after editing `VERSION`.** It reads the plain-text `VERSION` file (does not accept the
+version as a make argument). Bumping the plist alone does not update the website download link.
 
 ### Standard release (CI — preferred)
 
@@ -285,7 +302,7 @@ link.
 
 **Download URL pattern** (used by the site download button):
 
-```
+```sh
 https://github.com/drluckyspin/glide/releases/download/v{version}/Glide-{version}.zip
 ```
 
@@ -365,19 +382,20 @@ Preview locally: `make site`
 
 ### Common edit locations
 
-| Task                   | Files                                                                                                    |
-| ---------------------- | -------------------------------------------------------------------------------------------------------- |
-| Move/resize behavior   | `AppDelegate.swift`, `WindowGlide.swift`                                                                 |
-| Menu UI / toggles      | `StatusMenuView.swift`, `AppDelegate.swift` (wiring)                                                     |
-| Defaults / prefs       | `Preferences.swift`                                                                                      |
-| Onboarding copy/UI     | `OnboardingView.swift`, `OnboardingWindowController.swift`                                               |
-| Screenshot render mode | `AppDelegate.swift` (`--screenshot` extension)                                                           |
-| Screenshot automation  | `scripts/render-screenshots.sh`, `scripts/screenshot-layout.json`, `scripts/patch-screenshot-version.py` |
-| Screenshot CI          | `.github/workflows/screenshots.yaml`                                                                     |
-| App metadata           | `Glide/Glide-Info.plist`, `VERSION`                                                                      |
-| Release/version bump   | `VERSION`, `Makefile` (`bump-version`), `site/index.html`                                                |
-| CI release             | `.github/workflows/release.yaml`                                                                         |
-| Marketing page         | `site/index.html`, `site/*.png`                                                                          |
+| Task                   | Files                                                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Move/resize behavior   | `AppDelegate.swift`, `WindowGlide.swift`                                                                                                    |
+| Menu UI / toggles      | `StatusMenuView.swift`, `AppDelegate.swift` (wiring)                                                                                        |
+| Defaults / prefs       | `Preferences.swift`                                                                                                                         |
+| Onboarding copy/UI     | `OnboardingView.swift`, `OnboardingWindowController.swift`                                                                                  |
+| Screenshot render mode | `AppDelegate.swift` (`--screenshot` extension)                                                                                              |
+| Screenshot automation  | `scripts/render-screenshots.sh`, `scripts/screenshot-layout.json`, `scripts/patch-screenshot-version.py`, `scripts/prepare-menubar-base.py` |
+| Makefile / logging     | `Makefile`, `scripts/log.bash` (`log_run_xcodebuild`, `VERBOSE=true`)                                                                       |
+| Screenshot CI          | `.github/workflows/screenshots.yaml`                                                                                                        |
+| App metadata           | `Glide/Glide-Info.plist`, `VERSION`                                                                                                         |
+| Release/version bump   | `VERSION`, `Makefile` (`bump-version`), `site/index.html`                                                                                   |
+| CI release             | `.github/workflows/release.yaml`                                                                                                            |
+| Marketing page         | `site/index.html`, `site/*.png`                                                                                                             |
 
 ### SDK notes
 

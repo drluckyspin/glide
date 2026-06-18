@@ -22,12 +22,12 @@ held down at the same time for drag or resize to activate.
 
 ![Drop Down](docs/drop-down.png)
 
-- `Disabled` - turns Glide on/off globally (when disabled, move/resize actions are ignored)
-- `Alt`, `Cmd`, `Ctrl`, `Shift` - toggle required modifier keys
-- `Hover move` - when enabled, you can drag a window by pressing your hot keys and simply moving your mouse. The
-  application under the mouse is dragged, without having to click no the title bar or left click
-- `Reset to Defaults` - restores defaults (`Cmd + Shift` and `Hover move` enabled)
-- `Exit` - quits Glide
+- `Disabled` — turns Glide off globally (when disabled, move/resize actions are ignored)
+- `Option`, `Command`, `Control`, `Shift` — toggle required modifier keys (all selected keys must be held)
+- `Glide` — hover-move without clicking the title bar (tooltip: “Hover to move”)
+- `Resize` — right-click drag resize (tooltip: “Right-click drag”)
+- `Reset to defaults` — restores defaults (`Cmd + Shift`, hover move on, resize on, Glide enabled)
+- `Quit` — quits Glide
 
 ## Installation
 
@@ -36,7 +36,8 @@ Glide is distributed as a **signed, notarized DMG** via
 [landing site](https://github.com/drluckyspin/glide/tree/main/site) download button points at the same release zip.
 
 - Download the latest `Glide-{version}.zip` from the [Releases page](https://github.com/drluckyspin/glide/releases)
-- Unzip `Glide-{version}.zip`, then open the extracted DMG and **drag Glide to Applications** (do not run directly from the disk image)
+- Unzip `Glide-{version}.zip`, then open the extracted DMG and **drag Glide to Applications** (do not run directly from
+  the disk image)
 - Launch Glide from Applications
 - Enable Privacy Settings during onboarding
 
@@ -51,15 +52,22 @@ Glide is distributed as a **signed, notarized DMG** via
 ### Quick start
 
 - Clone the repo, then open the project with `make open` (or open `Glide.xcodeproj` in Xcode)
-- If you have not developed with Xcode before `xcodebuild -runFirstLaunch`
-- Build from Terminal with `make build` (or `make build-debug`)
+- First-time Xcode setup: `xcodebuild -runFirstLaunch` (or `make check`, which runs this idempotently)
+- **Daily dev:** `make run-debug` — Debug build (ad-hoc signed, no Developer ID cert required)
+- **Release-like local build:** `make build` / `make run` / `make install` — Release build (Developer ID signed; cert
+  must be in your login keychain)
 - Run tests with `make test`
-- Run the built app with `make run`
 - Clean local build output with `make clean`
 - Regenerate README/site screenshots after a version bump with `make screenshots` (macOS only)
-- Install your current version into /Applications `make install`
-- Package up a version for testing `make dev-package` (unsigned DMG, no notarization)
-- Build a signed + notarized DMG for distribution with `make release` (see notes below)
+- Install your current Release build into `/Applications`: `make install`
+- Package an unsigned DMG for local testing: `make dev-package`
+- Build a signed + notarized DMG for distribution: `make release` (see notes below)
+
+`make build`, `make clean`, and `make test` pipe xcodebuild output through indented dim logging (`-quiet` by default).
+Pass `VERBOSE=true` for the full log, e.g. `VERBOSE=true make build`.
+
+To bump the version before a release: `echo "1.3.2" > VERSION && make bump-version` (reads `VERSION`; does not take the
+version as a make argument).
 
 Full details of the [Release Process](RELEASE.md).
 
@@ -86,7 +94,9 @@ of this Makefile target.
 - No third-party package dependencies (no SwiftPM/CocoaPods/Carthage required)
 - **Brew tools** (for `make dev-package` / `make release`): `create-dmg` — install with `brew install create-dmg`
 - Run `make check` to verify all dependencies (Xcode, brew, create-dmg)
-- Automate package release and build with a GH runner
+- **Code signing:** Release builds use **Developer ID Application** (manual signing in the Xcode project; sandbox off —
+  required for Accessibility). Debug builds are **ad-hoc** (`CODE_SIGN_IDENTITY = -`) so local dev does not need a
+  distribution cert. CI release still archives unsigned and re-signs in GitHub Actions (unchanged).
 
 ## Roadmap
 

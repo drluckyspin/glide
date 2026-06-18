@@ -148,9 +148,7 @@ log_run_xcodebuild() {
     if [[ "$1" == "xcodebuild" && "$2" == "test" ]]; then
         log_run_dim xcodebuild test -quiet "${@:3}"
     else
-        local action="${@: -1}"
-        local args=("${@:1:$#-1}")
-        log_run_dim "${args[@]}" -quiet "$action"
+        log_run_dim "${@:1:$#-1}" -quiet "${@: -1}"
     fi
 }
 

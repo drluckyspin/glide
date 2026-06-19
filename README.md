@@ -1,31 +1,32 @@
 # ![Icon](docs/app-icon.png) Glide
 
-A simple utility that adds easy `modifier key + mouse drag` move and resize capabilities to macOS
+Assistive macOS menu-bar utility for simple, reliable window **move** and **resize** — modifier keys + your mouse.
 
 ## Description
 
-**Glide** focuses on one thing: simple, reliable window movement and resizing.
+**Glide** helps when title bars and resize edges are hard to reach. It stays focused on one job: move and resize windows
+with minimal effort. No tiling, no rules engine, no window-manager bloat.
 
-There are many powerful window manager utilities for macOS. However, over time they have become bloated with a ton of
-options. Glide stays laser beam focused on allowing you to drag and resize app windows with the minimal effort using
-your keys and mouse.
+**Defaults (`Cmd + Shift`):**
 
-- Hold `Cmd + Shift` and drag any window under your cursor to move it
-- Hold `Cmd + Shift` and drag with **Right Mouse** anywhere in a window to resize it
-  - Where you right-click controls the resize direction (for example, near the top-right resizes from the top-right
-    corner)
+- **Move (Glide):** hold your keys and **move the mouse** over a window — it follows the cursor. No title bar, no click.
+- **Resize:** hold your keys and **right-click** anywhere in a window, then pull. The edge or corner nearest your click
+  sets the direction (for example, top-right grows from the top-right corner).
+
+You can turn off hover-move and use left-click drag instead, or change which modifier keys are required, from the menu
+bar dropdown.
 
 ### Customization
 
-You can customize which modifier keys are required from the menu bar dropdown. **All** selected modifier keys must be
-held down at the same time for drag or resize to activate.
+Open the menu-bar icon to adjust settings. **All** selected modifier keys must be held **at the same time** for move or
+resize to activate.
 
 ![Drop Down](docs/drop-down.png)
 
 - `Disabled` — turns Glide off globally (when disabled, move/resize actions are ignored)
 - `Option`, `Command`, `Control`, `Shift` — toggle required modifier keys (all selected keys must be held)
-- `Glide` — hover-move without clicking the title bar (tooltip: “Hover to move”)
-- `Resize` — right-click drag resize (tooltip: “Right-click drag”)
+- `Glide` — hover to move without clicking the title bar (tooltip: “Hover to move”)
+- `Resize` — right-click to resize (tooltip: “Right-click drag”)
 - `Reset to defaults` — restores defaults (`Cmd + Shift`, hover move on, resize on, Glide enabled)
 - `Quit` — quits Glide
 
@@ -102,7 +103,7 @@ of this Makefile target.
 
 - Add support for registering to start automatically at startup
 - Enable users to select their own color scheme
-- Add an About dialog with version
+- ~~Add an About dialog with version~~
 - Add "check for updates" functionality
 
 ## Contributing

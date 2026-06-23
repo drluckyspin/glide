@@ -460,7 +460,7 @@ fmt: ## Format project sources with dprint
 
 format: fmt ## Alias for fmt
 
-fmt-check: ## Check formatting with dprint
+fmt-check: ## List files needing formatting with dprint (exits 0 when formatting is needed)
 	@$(LOGGER) log_separator
 	@$(LOGGER) log_info "Checking formatting"
 	@echo ""

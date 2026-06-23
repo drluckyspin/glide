@@ -208,7 +208,7 @@ Build output lives under `build/` (gitignored).
 Project formatting is centralized in **`dprint.json`**. Run from repo root:
 
 ```bash
-make fmt            # format changed files
+make fmt            # format supported files (per dprint.json)
 make fmt-check      # report files that still need formatting
 make format         # alias for make fmt
 ```

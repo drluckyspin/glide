@@ -24,6 +24,8 @@
 #   run                     : Build and run the app (Release)
 #   run-debug               : Build and run the app (Debug, no provisioning profile)
 #   run-onboarding          : Build (Debug) and run with onboarding dialog
+#   fmt                     : Format project sources with dprint
+#   fmt-check               : List files needing formatting with dprint (exits 0)
 #
 # xcodebuild output: indented dim log by default (-quiet). VERBOSE=true for full log.
 #
@@ -63,7 +65,7 @@ DMG_VOLICON     = $(DIST_DIR)/Glide.app/Contents/Resources/AppIcon.icns
 SIGN_IDENTITY   ?= Developer ID Application
 
 # All Phony targets
-.PHONY: help build build-debug run run-debug run-onboarding install test clean open site dev-package release release-prep sign check check_xcode check_xcode_first_launch check_brew check_create_dmg bump-version screenshots
+.PHONY: help build build-debug run run-debug run-onboarding install test fmt fmt-check format clean open site dev-package release release-prep sign check check_xcode check_xcode_first_launch check_brew check_create_dmg bump-version screenshots
 
 
 # -----------------------------------------------------------------------------------------------------------
@@ -401,3 +403,94 @@ test: ## Run tests (Debug configuration)
 	@$(LOGGER) log_info "Running tests"
 	@set -o pipefail; $(LOGGER) log_run_xcodebuild xcodebuild test -project $(PROJECT) -scheme $(SCHEME) -configuration Debug -destination '$(DEST)' -derivedDataPath "$(BUILD_OUTPUT_DIR)"
 	@$(LOGGER) log_success "Tests complete"
+
+# -----------------------------------------------------------------------------------------------------------
+# Format (dprint)
+# -----------------------------------------------------------------------------------------------------------
+fmt: ## Format project sources with dprint
+	@$(LOGGER) log_separator
+	@$(LOGGER) log_info "Formatting Source Files"
+	@echo ""
+	@set -eo pipefail; \
+	tmp=$$(mktemp); \
+	err=$$(mktemp); \
+	trap 'rm -f "$$tmp" "$$err"' EXIT; \
+	set +e; \
+	dprint check --list-different > "$$tmp" 2>"$$err"; \
+	check_status=$$?; \
+	set -e; \
+	if [ "$$check_status" -ne 0 ] && [ "$$check_status" -ne 20 ]; then \
+		$(LOGGER) log_error "dprint check failed (exit $$check_status)"; \
+		while IFS= read -r line || [ -n "$$line" ]; do \
+			[ -z "$$line" ] && continue; \
+			$(LOGGER) log_indent log_dim "$$line"; \
+		done < "$$err"; \
+		while IFS= read -r line || [ -n "$$line" ]; do \
+			[ -z "$$line" ] && continue; \
+			$(LOGGER) log_indent log_dim "$$line"; \
+		done < "$$tmp"; \
+		exit $$check_status; \
+	fi; \
+	count=$$(grep -cve '^[[:space:]]*$$' "$$tmp" || true); \
+	if [ "$$count" -eq 0 ]; then \
+		$(LOGGER) log_success "All files already formatted"; \
+	else \
+		set +e; \
+		dprint fmt > "$$err" 2>&1; \
+		fmt_status=$$?; \
+		set -e; \
+		if [ "$$fmt_status" -ne 0 ]; then \
+			$(LOGGER) log_error "dprint fmt failed (exit $$fmt_status)"; \
+			while IFS= read -r line || [ -n "$$line" ]; do \
+				[ -z "$$line" ] && continue; \
+				$(LOGGER) log_indent log_dim "$$line"; \
+			done < "$$err"; \
+			exit $$fmt_status; \
+		fi; \
+		if [ "$$count" -eq 1 ]; then \
+			$(LOGGER) log_success "Formatted 1 file"; \
+		else \
+			$(LOGGER) log_success "Formatted $$count files"; \
+		fi; \
+		while IFS= read -r line || [ -n "$$line" ]; do \
+			[ -z "$$line" ] && continue; \
+			$(LOGGER) log_indent log_dim "$$line"; \
+		done < "$$tmp"; \
+	fi
+
+format: fmt ## Alias for fmt
+
+fmt-check: ## List files needing formatting with dprint (exits 0 when formatting is needed)
+	@$(LOGGER) log_separator
+	@$(LOGGER) log_info "Checking formatting"
+	@echo ""
+	@set -eo pipefail; \
+	tmp=$$(mktemp); \
+	trap 'rm -f "$$tmp"' EXIT; \
+	set +e; \
+	dprint check --list-different > "$$tmp" 2>&1; \
+	status=$$?; \
+	set -e; \
+	if [ "$$status" -eq 0 ]; then \
+		$(LOGGER) log_success "Format check passed"; \
+	elif [ "$$status" -eq 20 ]; then \
+		count=$$(grep -cve '^[[:space:]]*$$' "$$tmp" || true); \
+		if [ "$$count" -eq 1 ]; then \
+			$(LOGGER) log_warning "1 file needs formatting"; \
+		else \
+			$(LOGGER) log_warning "$$count files need formatting"; \
+		fi; \
+		while IFS= read -r line || [ -n "$$line" ]; do \
+			[ -z "$$line" ] && continue; \
+			$(LOGGER) log_indent log_dim "$$line"; \
+		done < "$$tmp"; \
+		echo ""; \
+		$(LOGGER) log_info "Run 'make fmt' to fix"; \
+	else \
+		$(LOGGER) log_error "Formatting check failed (exit $$status)"; \
+		while IFS= read -r line || [ -n "$$line" ]; do \
+			[ -z "$$line" ] && continue; \
+			$(LOGGER) log_indent log_dim "$$line"; \
+		done < "$$tmp"; \
+		exit $$status; \
+	fi

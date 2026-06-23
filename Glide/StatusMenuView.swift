@@ -21,9 +21,9 @@ final class StatusMenuViewModel: ObservableObject {
         onReset: @escaping () -> Void
     ) {
         self.isDisabled = isDisabled
-        self.enabledKeys = Preferences.shared.enabledKeys
-        self.useMouseMove = Preferences.shared.useMouseMove
-        self.useRightClickResize = Preferences.shared.useRightClickResize
+        enabledKeys = Preferences.shared.enabledKeys
+        useMouseMove = Preferences.shared.useMouseMove
+        useRightClickResize = Preferences.shared.useRightClickResize
         self.onToggleDisabled = onToggleDisabled
         self.onSetKey = onSetKey
         self.onSetMouseMove = onSetMouseMove
@@ -90,16 +90,36 @@ struct StatusMenuView: View {
 
             sectionHeader("Activation Keys")
             VStack(spacing: 10) {
-                toggleRow(title: "Option", symbol: "option", isOn: model.enabledKeys.contains(.alt), isEnabled: actionsEnabled) {
+                toggleRow(
+                    title: "Option",
+                    symbol: "option",
+                    isOn: model.enabledKeys.contains(.alt),
+                    isEnabled: actionsEnabled
+                ) {
                     model.toggleKey(.alt)
                 }
-                toggleRow(title: "Command", symbol: "command", isOn: model.enabledKeys.contains(.cmd), isEnabled: actionsEnabled) {
+                toggleRow(
+                    title: "Command",
+                    symbol: "command",
+                    isOn: model.enabledKeys.contains(.cmd),
+                    isEnabled: actionsEnabled
+                ) {
                     model.toggleKey(.cmd)
                 }
-                toggleRow(title: "Control", symbol: "control", isOn: model.enabledKeys.contains(.ctrl), isEnabled: actionsEnabled) {
+                toggleRow(
+                    title: "Control",
+                    symbol: "control",
+                    isOn: model.enabledKeys.contains(.ctrl),
+                    isEnabled: actionsEnabled
+                ) {
                     model.toggleKey(.ctrl)
                 }
-                toggleRow(title: "Shift", symbol: "shift", isOn: model.enabledKeys.contains(.shift), isEnabled: actionsEnabled) {
+                toggleRow(
+                    title: "Shift",
+                    symbol: "shift",
+                    isOn: model.enabledKeys.contains(.shift),
+                    isEnabled: actionsEnabled
+                ) {
                     model.toggleKey(.shift)
                 }
             }
@@ -109,11 +129,23 @@ struct StatusMenuView: View {
 
             sectionHeader("Window Actions")
             VStack(spacing: 10) {
-                toggleRow(title: "Glide", mouseIcon: .glide, isOn: model.useMouseMove, isEnabled: actionsEnabled, tooltip: "Hover to move") {
+                toggleRow(
+                    title: "Glide",
+                    mouseIcon: .glide,
+                    isOn: model.useMouseMove,
+                    isEnabled: actionsEnabled,
+                    tooltip: "Hover to move"
+                ) {
                     model.toggleMouseMove()
                 }
 
-                toggleRow(title: "Resize", mouseIcon: .resize, isOn: model.useRightClickResize, isEnabled: actionsEnabled, tooltip: "Right-click drag") {
+                toggleRow(
+                    title: "Resize",
+                    mouseIcon: .resize,
+                    isOn: model.useRightClickResize,
+                    isEnabled: actionsEnabled,
+                    tooltip: "Right-click drag"
+                ) {
                     model.toggleRightClickResize()
                 }
             }

@@ -167,6 +167,7 @@ with global/local click monitors to dismiss on outside click — mimicking a nat
 | Code signing (local)      | **Release:** Developer ID Application, manual, sandbox **off**. **Debug:** ad-hoc (`-`), sandbox **off**. |
 | Packaging tools           | Homebrew `create-dmg` (DMG creation)                                                                      |
 | Dev tooling (not shipped) | Python 3 + Pillow (`patch-screenshot-version.py`, screenshot dimension verify in `render-screenshots.sh`) |
+| Formatting                | [dprint](https://dprint.dev/) — config in `dprint.json`; `make fmt` / `make fmt-check`                    |
 
 ---
 
@@ -183,6 +184,9 @@ make run            # Build (Release) and launch
 make run-debug      # Build (Debug) and launch
 make run-onboarding # Debug build with -force-onboarding -translocation
 make test           # xcodebuild test (Debug)
+make fmt            # Format project sources with dprint
+make fmt-check      # Check formatting (lists files that need fmt; exits 0)
+make format         # Alias for make fmt
 make clean          # Remove build/ and DMG artifacts
 make install        # Build (Release) and copy to /Applications (prompts if exists)
 make dev-package    # Unsigned DMG tagged "dev" for local testing
@@ -196,6 +200,52 @@ by default). Use `VERBOSE=true make build` for the full xcodebuild log.
 First-time Xcode setup: `xcodebuild -runFirstLaunch`
 
 Build output lives under `build/` (gitignored).
+
+---
+
+## Formatting (dprint)
+
+Project formatting is centralized in **`dprint.json`**. Run from repo root:
+
+```bash
+make fmt            # format supported files (per dprint.json)
+make fmt-check      # report files that still need formatting
+make format         # alias for make fmt
+```
+
+`make fmt-check` prints a friendly summary (file count + paths) and suggests `make fmt`. It exits **0** even when files
+need formatting — treat the warning output as the signal, not the exit code.
+
+### Plugins and file types
+
+| Plugin         | Extensions              | Examples in this repo                           |
+| -------------- | ----------------------- | ----------------------------------------------- |
+| Swift (custom) | `**/*.swift`            | `Glide/`, `GlideTests/`                         |
+| Markdown       | `**/*.md`               | `README.md`, `RELEASE.md`, `AGENTS.md`          |
+| JSON           | `**/*.json`             | `dprint.json`, `scripts/screenshot-layout.json` |
+| pretty_yaml    | `**/*.yaml`, `**/*.yml` | `.github/workflows/*.yaml`                      |
+
+**Excluded** (do not add to `includes` without good reason):
+
+- `site/` — hand-built HTML landing page
+- `**/Images.xcassets/**` — Xcode asset catalog JSON (noisy diffs)
+- `build/`, `DerivedData/`, `secrets/`
+
+**Not formatted:** shell scripts, HTML, TOML (none in repo yet). Add plugins later only if the repo gains those files.
+
+### Markdown rules
+
+When editing `.md` files, use **aligned GFM pipe tables** (delimiter-row pipes align with header/body columns). Blank
+lines before and after tables, headings, lists, and fenced code blocks. After editing markdown, run `make fmt` on the
+file.
+
+`lineWidth` is **120** for all plugins.
+
+### Agent workflow
+
+- After editing Swift, markdown, JSON, or workflow YAML, run **`make fmt`** on touched files (or the whole repo).
+- Before opening a PR, run **`make fmt-check`** and fix anything it lists.
+- When changing `dprint.json` (plugins, includes, excludes), run **`make fmt-check`** to confirm nothing breaks.
 
 ---
 
@@ -359,6 +409,7 @@ Preview locally: `make site`
 
 - Keep changes **minimal and focused** — match existing style in each file
 - Use **`make build`** / **`make test`** to verify Swift changes
+- Run **`make fmt`** after editing Swift, markdown, JSON, or workflow YAML; **`make fmt-check`** before PRs
 - Update **`VERSION` + `make bump-version`** when preparing a release (include `site/index.html`)
 - Run **`make screenshots`** after menu/onboarding UI changes; keep `screenshot-layout.json` and site `aspect-ratio` CSS
   in sync
@@ -391,6 +442,7 @@ Preview locally: `make site`
 | Screenshot render mode | `AppDelegate.swift` (`--screenshot` extension)                                                                                              |
 | Screenshot automation  | `scripts/render-screenshots.sh`, `scripts/screenshot-layout.json`, `scripts/patch-screenshot-version.py`, `scripts/prepare-menubar-base.py` |
 | Makefile / logging     | `Makefile`, `scripts/log.bash` (`log_run_xcodebuild`, `VERBOSE=true`)                                                                       |
+| Formatting config      | `dprint.json`                                                                                                                               |
 | Screenshot CI          | `.github/workflows/screenshots.yaml`                                                                                                        |
 | App metadata           | `Glide/Glide-Info.plist`, `VERSION`                                                                                                         |
 | Release/version bump   | `VERSION`, `Makefile` (`bump-version`), `site/index.html`                                                                                   |
@@ -413,6 +465,7 @@ The codebase targets modern Xcode/macOS SDKs. Notable patterns:
 2. Fork → branch → pull request
 3. Small PRs welcome for early feedback
 4. Ensure `make test` passes before requesting review
+5. Run `make fmt-check` and `make fmt` as needed so formatting stays consistent
 
 ### Branch names
 
@@ -436,6 +489,9 @@ Do not use other prefixes (`cursor/`, `dev/`, personal names, etc.).
 ```bash
 # Daily dev loop
 make run-debug
+
+# After editing sources or docs
+make fmt && make fmt-check
 
 # After UI changes that affect marketing screenshots
 make screenshots

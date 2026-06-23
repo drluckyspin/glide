@@ -29,7 +29,6 @@ struct WindowResizeGrip {
 /// Tracks the target window, its position/size, and the resize grip (which edge is being dragged).
 /// Used by the global event tap callback to apply move/resize via the Accessibility API.
 final class WindowGlide {
-
     static let shared = WindowGlide()
     private init() {}
 
@@ -42,7 +41,8 @@ final class WindowGlide {
     /// Which edge or corner of the window is being resized (set on right-click, used during right-drag).
     var currentResizeGrip = WindowResizeGrip()
 
-    /// Number of drag events processed in the current gesture; used for throttling AX updates and to detect active drag.
+    /// Number of drag events processed in the current gesture; used for throttling AX updates and to detect active
+    /// drag.
     var dragEventCount: Int = 0
 
     /// Last known origin (top-left) of the window being moved or resized.

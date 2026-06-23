@@ -25,7 +25,7 @@
 #   run-debug               : Build and run the app (Debug, no provisioning profile)
 #   run-onboarding          : Build (Debug) and run with onboarding dialog
 #   fmt                     : Format project sources with dprint
-#   fmt-check               : Check formatting with dprint
+#   fmt-check               : List files needing formatting with dprint (exits 0)
 #
 # xcodebuild output: indented dim log by default (-quiet). VERBOSE=true for full log.
 #

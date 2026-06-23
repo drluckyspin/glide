@@ -1,24 +1,24 @@
-import Foundation
 import CoreGraphics
+import Foundation
 
 private let modifierFlagsKey = "ModifierFlags"
 private let useMouseMoveKey = "UseMouseMove"
 private let useRightClickResizeKey = "UseRightClickResize"
 
 enum ModifierKey: String, CaseIterable {
-    case ctrl  = "CTRL"
+    case ctrl = "CTRL"
     case shift = "SHIFT"
-    case caps  = "CAPS"
-    case alt   = "ALT"
-    case cmd   = "CMD"
+    case caps = "CAPS"
+    case alt = "ALT"
+    case cmd = "CMD"
 
     var eventFlag: CGEventFlags {
         switch self {
-        case .ctrl:  return .maskControl
+        case .ctrl: return .maskControl
         case .shift: return .maskShift
-        case .caps:  return .maskAlphaShift
-        case .alt:   return .maskAlternate
-        case .cmd:   return .maskCommand
+        case .caps: return .maskAlphaShift
+        case .alt: return .maskAlternate
+        case .cmd: return .maskCommand
         }
     }
 }
@@ -29,7 +29,9 @@ final class Preferences {
         registerDefaultsIfNeeded()
     }
 
-    private var defaults: UserDefaults { .standard }
+    private var defaults: UserDefaults {
+        .standard
+    }
 
     var modifierFlags: CGEventFlags {
         flags(from: defaults.string(forKey: modifierFlagsKey) ?? "CMD,SHIFT")
@@ -81,7 +83,7 @@ final class Preferences {
         defaults.register(defaults: [
             modifierFlagsKey: "CMD,SHIFT",
             useMouseMoveKey: true,
-            useRightClickResizeKey: true
+            useRightClickResizeKey: true,
         ])
     }
 }

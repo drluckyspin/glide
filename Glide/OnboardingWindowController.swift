@@ -2,10 +2,14 @@ import Cocoa
 import SwiftUI
 
 final class OnboardingWindowController: NSWindowController {
-
     private static let minWindowWidth: CGFloat = 430
 
-    convenience init(isTranslocated: Bool, onOpenSettings: @escaping () -> Void, onQuit: @escaping () -> Void, debugText: String?) {
+    convenience init(
+        isTranslocated: Bool,
+        onOpenSettings: @escaping () -> Void,
+        onQuit: @escaping () -> Void,
+        debugText: String?
+    ) {
         let hostingController = NSHostingController(
             rootView: OnboardingView(
                 isTranslocated: isTranslocated,
@@ -42,6 +46,11 @@ final class OnboardingWindowController: NSWindowController {
 }
 
 private final class BorderlessKeyWindow: NSWindow {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { true }
+    override var canBecomeKey: Bool {
+        true
+    }
+
+    override var canBecomeMain: Bool {
+        true
+    }
 }

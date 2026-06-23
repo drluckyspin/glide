@@ -20,11 +20,13 @@ struct OnboardingView: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 18))
                             .foregroundStyle(.white)
-                        Text("Copy Glide to Applications first. Running from the disk image prevents permissions from working.")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
+                        Text(
+                            "Copy Glide to Applications first. Running from the disk image prevents permissions from working."
+                        )
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(14)
@@ -131,7 +133,7 @@ struct OnboardingView: View {
         .frame(minWidth: 430)
     }
 
-    private func stepRow(number: Int, icon: String, title: String, description: String) -> some View {
+    private func stepRow(number _: Int, icon: String, title: String, description: String) -> some View {
         HStack(spacing: 14) {
             Image(systemName: icon)
                 .font(.system(size: 20))
@@ -162,7 +164,7 @@ struct OnboardingView: View {
             colors: [
                 Color(red: 0.06, green: 0.05, blue: 0.10),
                 Color(red: 0.18, green: 0.10, blue: 0.28),
-                Color(red: 0.07, green: 0.06, blue: 0.12)
+                Color(red: 0.07, green: 0.06, blue: 0.12),
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -201,25 +203,25 @@ struct OnboardingView: View {
 }
 
 #if DEBUG
-struct OnboardingView_Previews: PreviewProvider {
-    static var previews: some View {
-        Group {
-            OnboardingView(
-                isTranslocated: false,
-                onOpenSettings: {},
-                onQuit: {},
-                debugText: "AX trusted: false\nBundle: /path/to/app"
-            )
-            .previewDisplayName("Normal")
+    struct OnboardingView_Previews: PreviewProvider {
+        static var previews: some View {
+            Group {
+                OnboardingView(
+                    isTranslocated: false,
+                    onOpenSettings: {},
+                    onQuit: {},
+                    debugText: "AX trusted: false\nBundle: /path/to/app"
+                )
+                .previewDisplayName("Normal")
 
-            OnboardingView(
-                isTranslocated: true,
-                onOpenSettings: {},
-                onQuit: {},
-                debugText: nil
-            )
-            .previewDisplayName("Translocation banner")
+                OnboardingView(
+                    isTranslocated: true,
+                    onOpenSettings: {},
+                    onQuit: {},
+                    debugText: nil
+                )
+                .previewDisplayName("Translocation banner")
+            }
         }
     }
-}
 #endif

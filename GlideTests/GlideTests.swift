@@ -1,9 +1,8 @@
 import AppKit
-import XCTest
 @testable import Glide
+import XCTest
 
 final class GlideTests: XCTestCase {
-
     // MARK: - Preferences: modifier flag parsing
 
     func testDefaultModifierFlags() {

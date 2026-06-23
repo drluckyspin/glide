@@ -1,20 +1,21 @@
 import Cocoa
 import SwiftUI
 
-private let kMoveFilterInterval   = 2
+private let kMoveFilterInterval = 2
 private let kResizeFilterInterval = 4
 
-// CGEventMaskBit was removed in Xcode 26 SDK. Replace with bit shift.
+/// CGEventMaskBit was removed in Xcode 26 SDK. Replace with bit shift.
 private func eventMaskBit(_ type: CGEventType) -> CGEventMask {
     CGEventMask(1) << CGEventMask(type.rawValue)
 }
 
 // MARK: - Event Tap Callback
-// Must be a free function — Swift closures that capture context cannot be
-// used as C function pointers. `refcon` carries an unretained AppDelegate.
-// Note: In Xcode 26 SDK, proxy and event are non-optional.
+
+/// Must be a free function — Swift closures that capture context cannot be
+/// used as C function pointers. `refcon` carries an unretained AppDelegate.
+/// Note: In Xcode 26 SDK, proxy and event are non-optional.
 private func eventTapCallback(
-    proxy: CGEventTapProxy,
+    proxy _: CGEventTapProxy,
     type: CGEventType,
     event: CGEvent,
     refcon: UnsafeMutableRawPointer?
@@ -28,7 +29,6 @@ private func eventTapCallback(
 
 @objc(AppDelegate) @objcMembers
 class AppDelegate: NSObject, NSApplicationDelegate {
-
     private var statusItem: NSStatusItem!
     // Borderless panel (no arrow) replaces NSPopover for a system-menu-like dropdown.
     private var statusMenuPanel: StatusMenuPanel?
@@ -41,14 +41,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var keyModifierFlags: CGEventFlags = []
     private var onboardingWindowController: OnboardingWindowController?
     private var accessibilityCheckTimer: Timer?
-    // Protects event-tap setup from accidental double-initialization.
+    /// Protects event-tap setup from accidental double-initialization.
     private var didStartMainFlow = false
-    // Cached disabled state for the SwiftUI popover model.
+    /// Cached disabled state for the SwiftUI popover model.
     private var isDisabled = false
 
     // MARK: - NSApplicationDelegate
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_: Notification) {
         // --screenshot: render docs/site PNGs from the real app views and exit,
         // before any menu bar / event-tap / onboarding setup runs. No-op otherwise.
         AppDelegate.runScreenshotModeIfRequested()
@@ -127,15 +127,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let useRightClickResize = Preferences.shared.useRightClickResize
 
         if !useRightClickResize
-            && (type == .rightMouseDown || type == .rightMouseDragged || type == .rightMouseUp) {
+            && (type == .rightMouseDown || type == .rightMouseDragged || type == .rightMouseUp)
+        {
             return passthrough
         }
 
         // ── Initial tracking: find the window under the cursor ────────────────
         if (useMouseMove && type == .mouseMoved && moveResize.dragEventCount == 0)
             || type == .leftMouseDown
-            || (useRightClickResize && type == .rightMouseDown) {
-
+            || (useRightClickResize && type == .rightMouseDown)
+        {
             let mouseLocation = event.location
             // `1` indicates an active gesture has started; increments on each drag event.
             moveResize.dragEventCount = 1
@@ -157,7 +158,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     NSAccessibility.Attribute.role.rawValue as CFString,
                     &roleRef
                 ) == .success,
-                   (roleRef as? String) == NSAccessibility.Role.window.rawValue {
+                    (roleRef as? String) == NSAccessibility.Role.window.rawValue
+                {
                     clickedWindow = element
                 }
                 // Otherwise get the window that contains this element.
@@ -194,8 +196,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // ── Move window ────────────────────────────────────────────────────────
         if (useMouseMove && type == .mouseMoved && moveResize.dragEventCount > 0)
-            || (type == .leftMouseDragged && moveResize.dragEventCount > 0) {
-
+            || (type == .leftMouseDragged && moveResize.dragEventCount > 0)
+        {
             moveResize.dragEventCount += 1
             guard let win = moveResize.trackedWindow else { return nil }
 
@@ -272,21 +274,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let deltaX = event.getDoubleValueField(.mouseEventDeltaX)
             let deltaY = event.getDoubleValueField(.mouseEventDeltaY)
 
-            var pos  = moveResize.trackedWindowOrigin
+            var pos = moveResize.trackedWindowOrigin
             var size = moveResize.trackedWindowSize
 
             // Horizontal resize math.
             switch resizeGrip.horizontalDirection {
             case .right: size.width += deltaX
-            case .left:  size.width -= deltaX; pos.x += deltaX
-            case .none:  break
+            case .left: size.width -= deltaX; pos.x += deltaX
+            case .none: break
             }
 
             // Vertical resize math.
             switch resizeGrip.verticalDirection {
-            case .top:    size.height += deltaY
+            case .top: size.height += deltaY
             case .bottom: size.height -= deltaY; pos.y += deltaY
-            case .none:  break
+            case .none: break
             }
 
             moveResize.trackedWindowOrigin = pos
@@ -341,12 +343,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Mouse events we intercept globally to implement move/resize gestures.
         let eventMask: CGEventMask =
-            eventMaskBit(.leftMouseDown)    |
+            eventMaskBit(.leftMouseDown) |
             eventMaskBit(.leftMouseDragged) |
-            eventMaskBit(.rightMouseDown)   |
+            eventMaskBit(.rightMouseDown) |
             eventMaskBit(.rightMouseDragged) |
-            eventMaskBit(.leftMouseUp)      |
-            eventMaskBit(.mouseMoved)       |
+            eventMaskBit(.leftMouseUp) |
+            eventMaskBit(.mouseMoved) |
             eventMaskBit(.rightMouseUp)
 
         guard let tap = CGEvent.tapCreate(
@@ -382,7 +384,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let controller = OnboardingWindowController(
             isTranslocated: isRunningTranslocated,
             onOpenSettings: {
-                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                if let url =
+                    URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+                {
                     NSWorkspace.shared.open(url)
                 }
             },
@@ -512,12 +516,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func installClickMonitors() {
         removeClickMonitors()
         // Global monitor catches clicks outside app; local monitor catches clicks in-app.
-        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+        globalClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: [
+            .leftMouseDown,
+            .rightMouseDown,
+        ]) { [weak self] event in
             guard let self else { return }
             if self.isClickInsideStatusMenu(event: event) { return }
             self.closeStatusMenuPanel()
         }
-        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+        localClickMonitor = NSEvent.addLocalMonitorForEvents(matching: [
+            .leftMouseDown,
+            .rightMouseDown,
+        ]) { [weak self] event in
             guard let self else { return event }
             if self.isClickInsideStatusMenu(event: event) { return event }
             self.closeStatusMenuPanel()
@@ -691,8 +701,13 @@ extension AppDelegate {
 // MARK: - Status menu panel
 
 private final class StatusMenuPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
+    override var canBecomeKey: Bool {
+        true
+    }
+
+    override var canBecomeMain: Bool {
+        false
+    }
 
     init(contentViewController: NSViewController) {
         super.init(

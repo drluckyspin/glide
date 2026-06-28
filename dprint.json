@@ -18,9 +18,9 @@
     "swiftVersion": "5.0"
   },
   "plugins": [
-    "https://github.com/drluckyspin/dprint-plugin-swift/releases/download/v0.1.0/plugin.json@faab1002bf499512dc2003198b844bf582cc6438d0dcab672be48478b5fcbafa",
     "https://plugins.dprint.dev/markdown-0.22.1.wasm",
     "https://plugins.dprint.dev/json-0.22.0.wasm",
-    "https://plugins.dprint.dev/g-plane/pretty_yaml-v0.6.0.wasm"
+    "https://plugins.dprint.dev/g-plane/pretty_yaml-v0.6.0.wasm",
+    "https://plugins.dprint.dev/drluckyspin/swift-v0.1.0.json",
   ]
 }
